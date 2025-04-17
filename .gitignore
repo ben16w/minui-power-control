@@ -1,0 +1,7 @@
+dist
+bin/*
+makeself*
+
+!bin/suspend
+!bin/shutdown
+!bin/launch

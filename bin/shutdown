@@ -1,0 +1,52 @@
+#!/bin/sh
+BIN_DIR="$(dirname "$0")"
+
+architecture=arm
+if uname -m | grep -q '64'; then
+    architecture=arm64
+fi
+
+export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
+
+show_message() {
+    message="$1"
+    seconds="$2"
+
+    if [ -z "$seconds" ]; then
+        seconds="forever"
+    fi
+
+    killall minui-presenter >/dev/null 2>&1 || true
+    echo "$message" 1>&2
+    if [ "$seconds" = "forever" ]; then
+        minui-presenter --message "$message" --timeout -1 &
+    else
+        minui-presenter --message "$message" --timeout "$seconds"
+    fi
+}
+
+main() {
+    if [ -f /tmp/emulator_pid ]; then
+        PROCESS_PID=$(cat /tmp/emulator_pid)
+    else
+        echo "Emulator PID file not found."
+        exit 1
+    fi
+
+    if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
+        echo "Emulator process $PROCESS_PID not found."
+        exit 1
+    fi
+
+    kill "$PROCESS_PID" || true
+
+    show_message "Powering off" forever
+
+    sync
+    poweroff
+    while :; do
+        sleep 1
+    done
+}
+
+main "$@"

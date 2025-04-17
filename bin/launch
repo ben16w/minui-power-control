@@ -1,0 +1,83 @@
+#!/bin/sh
+BIN_DIR="$(dirname "$0")"
+
+architecture=arm
+if uname -m | grep -q '64'; then
+    architecture=arm64
+fi
+
+export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
+
+cleanup() {
+    if [ -n "$HANDLER_PROCESS_PID" ]; then
+        echo "Cleaning up button-handler process with PID: $HANDLER_PROCESS_PID"
+        kill "$HANDLER_PROCESS_PID" || true
+        wait "$HANDLER_PROCESS_PID" || true
+    fi
+    rm -f /tmp/emulator_pid
+}
+
+main() {
+    trap "cleanup" EXIT INT TERM HUP QUIT
+
+    echo "Starting minui-power-control..."
+
+    if [ "$PLATFORM" = "tg3040" ] && [ -z "$DEVICE" ]; then
+        export DEVICE="brick"
+        export PLATFORM="tg5040"
+    fi
+
+    allowed_platforms="tg5040"
+    if ! echo "$allowed_platforms" | grep -q "$PLATFORM"; then
+        echo "$PLATFORM is not a supported platform."
+    fi
+
+    if ! command -v button-handler >/dev/null 2>&1; then
+        echo "button-handler binary not found."
+        exit 1
+    fi
+
+    if ! command -v minui-presenter >/dev/null 2>&1; then
+        echo "minui-presenter binary not found."
+        exit 1
+    fi
+
+    if [ ! -f "$BIN_DIR/shutdown" ]; then
+        echo "shutdown script not found."
+        exit 1
+    fi
+
+    if [ ! -f "$BIN_DIR/suspend" ]; then
+        echo "suspend script not found."
+        exit 1
+    fi
+
+    chmod +x "$BIN_DIR/$architecture/button-handler"
+    chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
+    chmod +x "$BIN_DIR/shutdown"
+    chmod +x "$BIN_DIR/suspend"
+
+    if [ "$#" -ne 1 ]; then
+        echo "Usage: $0 <emulator-binary>"
+        exit 1
+    fi
+
+    EMULATOR_BIN="$1"
+    EMULATOR_PROCESS_PID=$(pgrep "$EMULATOR_BIN" | head -n 1)
+    if [ -z "$EMULATOR_PROCESS_PID" ] || ! kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; then
+        echo "Emulator process $EMULATOR_BIN not found."
+        exit 1
+    fi
+
+    echo "$EMULATOR_PROCESS_PID" > /tmp/emulator_pid
+    echo "Emulator PID: $EMULATOR_PROCESS_PID"
+
+    button-handler &
+    HANDLER_PROCESS_PID=$!
+
+    while kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; do
+        sleep 1
+    done
+}
+
+main "$@"

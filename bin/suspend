@@ -1,0 +1,37 @@
+#!/bin/sh
+BIN_DIR="$(dirname "$0")"
+
+architecture=arm
+if uname -m | grep -q '64'; then
+    architecture=arm64
+fi
+
+export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
+
+SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
+
+main() {
+    if [ ! -f "$SYSTEM_SUSPEND_SCRIPT" ]; then
+        echo "Suspend script not found. Is deep sleep supported on this device?"
+        exit 1
+    fi
+    chmod +x "$SYSTEM_SUSPEND_SCRIPT"
+
+    if [ -f /tmp/emulator_pid ]; then
+        PROCESS_PID=$(cat /tmp/emulator_pid)
+    else
+        echo "Emulator PID file not found."
+        exit 1
+    fi
+
+    if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
+        echo "Emulator process $PROCESS_PID not found."
+        exit 1
+    fi
+
+    kill -STOP "$PROCESS_PID" || true
+    "$SYSTEM_SUSPEND_SCRIPT"
+    kill -CONT "$PROCESS_PID" || true
+}
+
+main "$@"
