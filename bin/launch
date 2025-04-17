@@ -64,7 +64,7 @@ main() {
 
     EMULATOR_BIN="$1"
     EMULATOR_PROCESS_PID=""
-    for _ in $(seq 1 5); do
+    for _ in $(seq 1 10); do
         echo "Waiting for $EMULATOR_BIN to start..."
         EMULATOR_PROCESS_PID=$(pgrep "$EMULATOR_BIN" | head -n 1)
         if [ -n "$EMULATOR_PROCESS_PID" ] && kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; then
