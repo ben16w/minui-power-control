@@ -4,7 +4,9 @@ A [MinUI](https://github.com/shauninman/MinUI) and [NextUI](https://github.com/L
 
 ## Description
 
-MinUI Power Control is an app that enables devices to use deep sleep and shutdown with the power button. It is intended for third-party emulators lacking native power button support, providing functionality similar to that found in MinUI and NextUI emulators. The app monitors power button events and performs the actions on behalf of the emulator. It's designed to be lightweight and easy to use, and comes as a single binary with minimal configuration required. It also runs in the background so that it does not interfere with the emulator or the game being played.
+MinUI Power Control is an app that enables devices to use deep sleep and shutdown with the power button. It is intended for third-party emulator paks lacking native power button support, providing functionality similar to that found in MinUI and NextUI emulators. The app monitors power button events and performs the actions on behalf of the emulator. It's designed to be lightweight and easy to use, and comes as a single binary with minimal configuration required. It also runs in the background so that it does not interfere with the emulator or the game being played.
+
+The app is especially aimed at developers creating emulator paks, making it easy to add deep sleep and shutdown into their paks without needing to implement it from scratch.
 
 ## Requirements
 
