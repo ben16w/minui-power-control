@@ -12,9 +12,11 @@ The app is especially aimed at developers creating emulator paks, making it easy
 
 This app is designed and tested on the following MinUI platforms and devices:
 
-- `tg5040`: Trimui Brick (formerly `tg3040`)
+- `tg5040`: Trimui Brick (formerly `tg3040`), Trimui Smart Pro
+- `miyoomini`: Miyoo Mini Plus (_not_ the Miyoo Mini)
+- `rg35xxplus`: RG-35XX Plus, RG-34XX, RG-35XX H, RG-35XX SP
 
-The app may work on other platforms and devices, but it has not been tested on them.
+Deep sleep is currently only supported on the Trimui Brick and Trimui Smart Pro.
 
 ## Features
 

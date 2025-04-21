@@ -1,7 +1,7 @@
 TARGET = minui-power-control
 
 ARCHITECTURES := arm arm64
-PLATFORMS := miyoomini my282 rg35xxplus tg5040
+PLATFORMS := tg5040 miyoomini rg35xxplus
 
 MINUI_PRESENTER_VERSION := 0.9.0
 MAKESELF_VERSION := 2.5.0

@@ -27,9 +27,17 @@ main() {
         export PLATFORM="tg5040"
     fi
 
-    allowed_platforms="tg5040"
+    if [ "$PLATFORM" = "miyoomini" ] && [ -z "$DEVICE" ]; then
+        export DEVICE="miyoomini"
+        if [ -f /customer/app/axp_test ]; then
+            export DEVICE="miyoominiplus"
+        fi
+    fi
+
+    allowed_platforms="tg5040 rg35xxplus miyoomini"
     if ! echo "$allowed_platforms" | grep -q "$PLATFORM"; then
         echo "$PLATFORM is not a supported platform."
+        exit 1
     fi
 
     if ! command -v button-handler >/dev/null 2>&1; then
