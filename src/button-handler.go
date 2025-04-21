@@ -38,10 +38,12 @@ func main() {
 		event, err := dev.ReadOne()
 		if err != nil {
 			log.Printf("Failed to read input: %v", err)
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
 		if time.Now().Before(cooldownUntil) {
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
@@ -68,6 +70,9 @@ func main() {
 					cooldownUntil = time.Now().Add(coolDownTime)
 				}
 			}
+		} else {
+			time.Sleep(100 * time.Millisecond)
+			continue
 		}
 	}
 }
