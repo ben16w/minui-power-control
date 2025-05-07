@@ -9,6 +9,7 @@ fi
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
 cleanup() {
+    echo "Cleaning up..."
     if [ -n "$HANDLER_PROCESS_PID" ]; then
         echo "Cleaning up button-handler process with PID: $HANDLER_PROCESS_PID"
         kill "$HANDLER_PROCESS_PID" || true
@@ -96,10 +97,12 @@ main() {
     HANDLER_PROCESS_PID=$!
 
     if [ -n "$EMULATOR_PROCESS_PID" ]; then
+        echo "Waiting for emulator process $EMULATOR_PROCESS_PID to finish..."
         while kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; do
             sleep 1
         done
     else
+        echo "Waiting for dummy PID file to be removed..."
         while [ -f /tmp/power_control_no_pid ]; do
             sleep 1
         done
