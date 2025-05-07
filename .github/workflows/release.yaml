@@ -72,7 +72,7 @@ jobs:
           echo "APP_NAME=$(grep ^TARGET Makefile | awk '{print $3}')" >> $GITHUB_OUTPUT
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4.2.1
+        uses: actions/download-artifact@v4.3.0
         with:
           name: "${{ steps.app-name.outputs.APP_NAME }}"
           path: "dist"
