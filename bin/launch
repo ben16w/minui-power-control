@@ -65,10 +65,10 @@ main() {
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
 
-    if [ "$#" -ne 1 ]; then
-        echo "Usage: $0 <emulator-binary>"
-        exit 1
-    fi
+    # if [ "$#" -ne 1 ]; then
+    #     echo "Usage: $0 <emulator-binary>"
+    #     exit 1
+    # fi
 
     # EMULATOR_BIN="$1"
     # EMULATOR_PROCESS_PID=""
