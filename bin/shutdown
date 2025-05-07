@@ -27,6 +27,7 @@ show_message() {
 
 main() {
     if [ -f /tmp/power_control_emulator_pid ]; then
+        echo "Emulator PID file found. Killing the emulator process."
         PROCESS_PID=$(cat /tmp/emulator_pid)
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
             echo "Emulator process $PROCESS_PID not found."
