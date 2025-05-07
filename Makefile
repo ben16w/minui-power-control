@@ -9,10 +9,7 @@ MAKESELF_VERSION := 2.5.0
 clean:
 	rm -f bin/*/button-handler
 	rm -f bin/*/minui-presenter
-	for dir in $(ARCHITECTURES) $(PLATFORMS); do \
-		rmdir bin/$$dir || true; \
-	done
-
+	find bin -type d -empty -delete
 
 build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
 	@echo "Building for $(ARCHITECTURES)"
