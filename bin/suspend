@@ -17,21 +17,21 @@ main() {
     fi
     chmod +x "$SYSTEM_SUSPEND_SCRIPT"
 
-    if [ -f /tmp/emulator_pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
-    else
-        echo "Emulator PID file not found."
-        exit 1
-    fi
+    # if [ -f /tmp/emulator_pid ]; then
+    #     PROCESS_PID=$(cat /tmp/emulator_pid)
+    # else
+    #     echo "Emulator PID file not found."
+    #     exit 1
+    # fi
 
-    if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
-        echo "Emulator process $PROCESS_PID not found."
-        exit 1
-    fi
+    # if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
+    #     echo "Emulator process $PROCESS_PID not found."
+    #     exit 1
+    # fi
 
-    kill -STOP "$PROCESS_PID" || true
+    #kill -STOP "$PROCESS_PID" || true
     "$SYSTEM_SUSPEND_SCRIPT"
-    kill -CONT "$PROCESS_PID" || true
+    #kill -CONT "$PROCESS_PID" || true
 }
 
 main "$@"

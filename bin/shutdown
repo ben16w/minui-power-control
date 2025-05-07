@@ -26,19 +26,19 @@ show_message() {
 }
 
 main() {
-    if [ -f /tmp/emulator_pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
-    else
-        echo "Emulator PID file not found."
-        exit 1
-    fi
+    # if [ -f /tmp/emulator_pid ]; then
+    #     PROCESS_PID=$(cat /tmp/emulator_pid)
+    # else
+    #     echo "Emulator PID file not found."
+    #     exit 1
+    # fi
 
-    if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
-        echo "Emulator process $PROCESS_PID not found."
-        exit 1
-    fi
+    # if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
+    #     echo "Emulator process $PROCESS_PID not found."
+    #     exit 1
+    # fi
 
-    kill "$PROCESS_PID" || true
+    # kill "$PROCESS_PID" || true
 
     show_message "Powering off" forever
 
