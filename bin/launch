@@ -9,14 +9,14 @@ fi
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
 cleanup() {
-    echo "Cleaning up..."
+    echo "Cleaning up minui-power-control..."
     if [ -n "$HANDLER_PROCESS_PID" ]; then
         echo "Cleaning up button-handler process with PID: $HANDLER_PROCESS_PID"
         kill "$HANDLER_PROCESS_PID" || true
         wait "$HANDLER_PROCESS_PID" || true
     fi
     rm -f /tmp/power_control_emulator_pid
-    rm -f /tmp/power_control_no_pid
+    rm -f /tmp/power_control_dummy_pid
 }
 
 main() {
@@ -69,7 +69,7 @@ main() {
 
     if [ "$#" -eq 0 ]; then
         echo "Emulator process not specified. Creating a dummy PID file."
-        touch /tmp/power_control_no_pid
+        touch /tmp/power_control_dummy_pid
     elif [ "$#" -eq 1 ]; then
         EMULATOR_BIN="$1"
         EMULATOR_PROCESS_PID=""
@@ -103,7 +103,7 @@ main() {
         done
     else
         echo "Waiting for dummy PID file to be removed..."
-        while [ -f /tmp/power_control_no_pid ]; do
+        while [ -f /tmp/power_control_dummy_pid ]; do
             sleep 1
         done
     fi

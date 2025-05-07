@@ -39,6 +39,14 @@ minui-power-control <emulator> &
 
 Before starting `minui-power-control`, make sure the emulator is already running. Replace `<emulator>` with the actual name of the emulator’s binary. The app will run in the background, watching for power button events and carrying out the actions. Once the emulator closes, the app will automatically exit as well. To make things more convenient and reliable, it’s best to start the app in the emulator’s `launch.sh` script, placing it before the emulator command. This makes sure it launches alongside the emulator, removing the need to start it manually.
 
+Alternatively, it is possible to run `minui-power-control` without specifying an emulator:
+
+```bash
+minui-power-control &
+```
+
+In this mode, the app creates a file at `/tmp/power_control_dummy_pid` and will continue running until that file is deleted. This is useful for testing or for scenarios where the name of the emulator is not known in advance.
+
 ## Building
 
 The latest version of the app can be downloaded from the [Releases](https://github.com/ben16w/minui-power-control/releases) page. To build the app manually, install Go from the [official website](https://golang.org/dl/). After installing Go, fetch dependencies and build the app with:
