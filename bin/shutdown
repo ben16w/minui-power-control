@@ -34,7 +34,7 @@ main() {
             exit 1
         fi
         kill "$PROCESS_PID" || true
-    elif [ -f /tmp/power_control_no_pid ]; then
+    elif [ -f /tmp/power_control_dummy_pid ]; then
         echo "Dummy PID file found. No emulator process to kill."
     else
         echo "Emulator PID file not found."

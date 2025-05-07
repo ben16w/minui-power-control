@@ -27,7 +27,7 @@ main() {
         kill -STOP "$PROCESS_PID" || true
         "$SYSTEM_SUSPEND_SCRIPT"
         kill -CONT "$PROCESS_PID" || true
-    elif [ -f /tmp/power_control_no_pid ]; then
+    elif [ -f /tmp/power_control_dummy_pid ]; then
         echo "Dummy PID file found. No emulator process to suspend."
         "$SYSTEM_SUSPEND_SCRIPT"
     else
