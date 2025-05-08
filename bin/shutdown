@@ -25,7 +25,7 @@ show_message() {
     fi
 }
 
-power_off() {
+shutdown_system() {
     show_message "Powering off" forever
     sync
     poweroff
@@ -52,7 +52,7 @@ main() {
         exit 1
     fi
 
-    power_off
+    shutdown_system
 }
 
 main "$@"
