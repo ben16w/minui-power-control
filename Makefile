@@ -1,5 +1,5 @@
 TARGET = minui-power-control
-VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "")
+TAG ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "")
 
 ARCHITECTURES := arm arm64
 PLATFORMS := tg5040 miyoomini rg35xxplus
@@ -40,6 +40,6 @@ release: build
 	chmod +x bin/launch
 	chmod +x bin/shutdown
 	chmod +x bin/suspend
-	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(VERSION)" ./launch
+	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG)" ./launch
 	chmod +x ./dist/$(TARGET)
 	@echo "Release created at dist/$(TARGET)"
