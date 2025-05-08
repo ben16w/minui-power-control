@@ -27,6 +27,7 @@ show_message() {
 
 shutdown_system() {
     show_message "Powering off" forever
+    tracker stop
     sync
     poweroff
     while :; do

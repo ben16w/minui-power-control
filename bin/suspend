@@ -22,6 +22,7 @@ suspend_system() {
 
     if [ -n "$PID" ]; then
         echo "Suspending emulator process with PID: $PID"
+        tracker stop
         kill -STOP "$PID" || true
     fi
 
@@ -29,6 +30,7 @@ suspend_system() {
 
     if [ -n "$PID" ]; then
         echo "Resuming emulator process with PID: $PID"
+        tracker start
         kill -CONT "$PID" || true
     fi
 }
