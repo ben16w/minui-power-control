@@ -26,6 +26,7 @@ show_message() {
 }
 
 shutdown_system() {
+    echo "Shutting down system..."
     show_message "Powering off" forever
     tracker stop
     sync

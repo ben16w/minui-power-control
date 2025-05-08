@@ -14,9 +14,12 @@ suspend_system() {
     SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
     PID="$1"
 
+    echo "Suspending system..."
+
     if [ ! -f "$SCRIPT" ]; then
         echo "Suspend script not found. Is deep sleep supported on this device?"
-        exit
+        fallback_suspend "$PID"
+        return
     fi
     chmod +x "$SCRIPT"
 
@@ -32,6 +35,26 @@ suspend_system() {
         echo "Resuming emulator process with PID: $PID"
         tracker start
         kill -CONT "$PID" || true
+    fi
+}
+
+fallback_suspend() {
+    PID="$1"
+    echo "Fallback suspend for emulator process with PID: $PID"
+
+    if [ -z "$PID" ]; then
+        echo "No PID provided for fallback suspend."
+        return 1
+    fi
+
+    if [ ! -f /tmp/powercontrol-suspend-active ]; then
+        echo "Pausing emulator process with PID: $PID"
+        kill -STOP "$PID" || true
+        touch /tmp/powercontrol-suspend-active
+    else
+        echo "Resuming emulator process with PID: $PID"
+        kill -CONT "$PID" || true
+        rm -f /tmp/powercontrol-suspend-active
     fi
 }
 
