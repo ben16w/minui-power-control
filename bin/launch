@@ -30,6 +30,8 @@ cleanup() {
     fi
     rm -f /tmp/powercontrol-emulator-pid
     rm -f /tmp/powercontrol-dummy-pid
+    rm -f /tmp/powercontrol-rom-path
+    rm -f /tmp/powercontrol-suspend-active
 }
 
 main() {
