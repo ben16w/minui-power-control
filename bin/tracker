@@ -1,5 +1,7 @@
 #!/bin/sh
 
+TRACKER_PATH="$SDCARD_PATH/Tools/$PLATFORM/Game Tracker.pak/gametimectl.elf"
+
 print_usage() {
     echo "Usage: $0 start|stop"
     exit 1
@@ -15,8 +17,8 @@ main() {
         exit
     fi
 
-    if [ ! -f /usr/bin/gametimectl.elf ]; then
-        echo "gametimectl.elf not found. Unable to start or stop the tracker for the emulator."
+    if [ ! -f "$TRACKER_PATH" ]; then
+        echo "Game tracker $TRACKER_PATH not found. Unable to start or stop the tracker for the emulator."
         exit
     fi
 
@@ -31,12 +33,12 @@ main() {
     case "$ACTION" in
         start)
             if [ -n "$ROM_PATH" ]; then
-                gametimectl.elf start "$ROM_PATH"
+                "$TRACKER_PATH" start "$ROM_PATH"
             fi
             ;;
         stop)
             if [ -n "$ROM_PATH" ]; then
-                gametimectl.elf stop "$ROM_PATH"
+                "$TRACKER_PATH" stop "$ROM_PATH"
             fi
             ;;
         *)
