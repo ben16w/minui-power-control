@@ -37,6 +37,12 @@ shutdown_system() {
 }
 
 main() {
+    if [ ! -f "$BIN_DIR/tracker" ]; then
+        echo "tracker script not found."
+        exit 1
+    fi
+    chmod +x "$BIN_DIR/tracker"
+
     if [ -f /tmp/powercontrol-emulator-pid ]; then
         PROCESS_PID=$(cat /tmp/emulator_pid)
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
