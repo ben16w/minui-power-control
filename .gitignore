@@ -5,3 +5,4 @@ makeself*
 !bin/suspend
 !bin/shutdown
 !bin/launch
+!bin/tracker
