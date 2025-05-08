@@ -45,7 +45,7 @@ Alternatively, it is possible to run `minui-power-control` without specifying an
 minui-power-control &
 ```
 
-In this mode, the app creates a file at `/tmp/power_control_dummy_pid` and will continue running until that file is deleted. This is useful for testing or for scenarios where the name of the emulator is not known in advance.
+In this mode, the app creates a file at `/tmp/powercontrol-dummy-pid` and will continue running until that file is deleted. This is useful for testing or for scenarios where the name of the emulator is not known in advance.
 
 ## Building
 
