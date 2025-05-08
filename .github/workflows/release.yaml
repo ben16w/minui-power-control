@@ -21,10 +21,35 @@ permissions:
   contents: write
 
 jobs:
+  compute-tag:
+    name: compute-tag
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.next-tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Get Latest Tag
+        id: latest-tag
+        run: |
+          echo GIT_LATEST_TAG="$(git describe --tags "$(git rev-list --tags --max-count=1)")" >>"$GITHUB_OUTPUT"
+
+      - name: Compute Next Tag
+        id: next-tag
+        uses: docker://ghcr.io/dokku/semver-generator:latest
+        with:
+          bump: ${{ github.event.inputs.bump_type }}
+          input: ${{ steps.latest-tag.outputs.GIT_LATEST_TAG }}
+
   build:
     name: build
     runs-on: ubuntu-24.04-arm
-
+    needs: compute-tag
+    env:
+      TAG: ${{ needs.compute-tag.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -37,7 +62,7 @@ jobs:
         uses: docker/setup-buildx-action@v3.10.0
 
       - name: Create release
-        run: make clean build release
+        run: make clean build release TAG="$TAG"
 
       - name: Get App Name
         id: app-name
@@ -58,8 +83,7 @@ jobs:
   release:
     name: release
     runs-on: ubuntu-24.04
-    needs: build
-
+    needs: [build, compute-tag]
     steps:
       - name: Checkout
         uses: actions/checkout@v4.2.2
@@ -84,18 +108,6 @@ jobs:
             exit 1
           fi
 
-      - name: Get Latest Tag
-        id: latest-tag
-        run: |
-          echo GIT_LATEST_TAG="$(git describe --tags "$(git rev-list --tags --max-count=1)")" >>"$GITHUB_OUTPUT"
-
-      - name: Compute Next Tag
-        id: next-tag
-        uses: docker://ghcr.io/dokku/semver-generator:latest
-        with:
-          bump: ${{ github.event.inputs.bump_type }}
-          input: ${{ steps.latest-tag.outputs.GIT_LATEST_TAG }}
-
       - name: Create and Push Tag
         run: |
           git config --local user.email "action@github.com"
@@ -103,7 +115,7 @@ jobs:
           git tag "$GIT_NEXT_TAG"
           git push origin "$GIT_NEXT_TAG"
         env:
-          GIT_NEXT_TAG: ${{ steps.next-tag.outputs.version }}
+          GIT_NEXT_TAG: ${{ needs.compute-tag.outputs.tag }}
 
       - name: Release
         uses: softprops/action-gh-release@v2.2.2
@@ -111,4 +123,4 @@ jobs:
           files: dist/*
           generate_release_notes: true
           make_latest: "true"
-          tag_name: ${{ steps.next-tag.outputs.version }}
+          tag_name: ${{ needs.compute-tag.outputs.tag }}
