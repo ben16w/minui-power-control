@@ -10,26 +10,43 @@ export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
 SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
 
-main() {
-    if [ ! -f "$SYSTEM_SUSPEND_SCRIPT" ]; then
-        echo "Suspend script not found. Is deep sleep supported on this device?"
-        exit 1
-    fi
-    chmod +x "$SYSTEM_SUSPEND_SCRIPT"
+suspend_system() {
+    SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
+    PID="$1"
 
-    if [ -f /tmp/power_control_emulator_pid ]; then
-        echo "Emulator PID file found. Stopping the emulator process."
+    if [ ! -f "$SCRIPT" ]; then
+        echo "Suspend script not found. Is deep sleep supported on this device?"
+        exit
+    fi
+    chmod +x "$SCRIPT"
+
+    if [ -n "$PID" ]; then
+        echo "Suspending emulator process with PID: $PID"
+        kill -STOP "$PID" || true
+    fi
+
+    "$SCRIPT"
+
+    if [ -n "$PID" ]; then
+        echo "Resuming emulator process with PID: $PID"
+        kill -CONT "$PID" || true
+    fi
+}
+
+main() {
+    if [ -f /tmp/powercontrol-emulator-pid ]; then
         PROCESS_PID=$(cat /tmp/emulator_pid)
+        echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
+
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
             echo "Emulator process $PROCESS_PID not found."
             exit 1
         fi
-        kill -STOP "$PROCESS_PID" || true
-        "$SYSTEM_SUSPEND_SCRIPT"
-        kill -CONT "$PROCESS_PID" || true
-    elif [ -f /tmp/power_control_dummy_pid ]; then
+
+        suspend_system "$PROCESS_PID"
+    elif [ -f /tmp/powercontrol-dummy-pid ]; then
         echo "Dummy PID file found. No emulator process to suspend."
-        "$SYSTEM_SUSPEND_SCRIPT"
+        suspend_system
     else
         echo "Emulator PID file not found."
         exit 1

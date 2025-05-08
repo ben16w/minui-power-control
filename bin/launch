@@ -8,6 +8,11 @@ fi
 
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
+print_usage() {
+    echo "Usage: $0 <emulator-binary>"
+    echo "If no emulator binary is specified, a dummy PID file will be created."
+}
+
 cleanup() {
     echo "Cleaning up minui-power-control..."
     if [ -n "$HANDLER_PROCESS_PID" ]; then
@@ -15,8 +20,8 @@ cleanup() {
         kill "$HANDLER_PROCESS_PID" || true
         wait "$HANDLER_PROCESS_PID" || true
     fi
-    rm -f /tmp/power_control_emulator_pid
-    rm -f /tmp/power_control_dummy_pid
+    rm -f /tmp/powercontrol-emulator-pid
+    rm -f /tmp/powercontrol-dummy-pid
 }
 
 main() {
@@ -42,13 +47,13 @@ main() {
         exit 1
     fi
 
-    if ! command -v button-handler >/dev/null 2>&1; then
-        echo "button-handler binary not found."
+    if ! command -v minui-presenter >/dev/null 2>&1; then
+        echo "minui-presenter binary not found."
         exit 1
     fi
 
-    if ! command -v minui-presenter >/dev/null 2>&1; then
-        echo "minui-presenter binary not found."
+    if ! command -v button-handler >/dev/null 2>&1; then
+        echo "button-handler binary not found."
         exit 1
     fi
 
@@ -62,17 +67,18 @@ main() {
         exit 1
     fi
 
-    chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
+    chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
 
     if [ "$#" -eq 0 ]; then
         echo "Emulator process not specified. Creating a dummy PID file."
-        touch /tmp/power_control_dummy_pid
+        touch /tmp/powercontrol-dummy-pid
     elif [ "$#" -eq 1 ]; then
         EMULATOR_BIN="$1"
         EMULATOR_PROCESS_PID=""
+
         for _ in $(seq 1 10); do
             echo "Waiting for $EMULATOR_BIN to start..."
             EMULATOR_PROCESS_PID=$(pgrep "$EMULATOR_BIN" | head -n 1)
@@ -81,18 +87,19 @@ main() {
             fi
             sleep 1
         done
+
         if [ -z "$EMULATOR_PROCESS_PID" ] || ! kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; then
             echo "Emulator process $EMULATOR_BIN not found."
             exit 1
         fi
 
-        echo "$EMULATOR_PROCESS_PID" > /tmp/power_control_emulator_pid
+        echo "$EMULATOR_PROCESS_PID" > /tmp/powercontrol-emulator-pid
         echo "Emulator PID: $EMULATOR_PROCESS_PID"
     else
-        echo "Usage: $0 <emulator-binary>"
-        exit 1
+        print_usage
     fi
 
+    echo "Starting button-handler..."
     button-handler &
     HANDLER_PROCESS_PID=$!
 
@@ -103,7 +110,7 @@ main() {
         done
     else
         echo "Waiting for dummy PID file to be removed..."
-        while [ -f /tmp/power_control_dummy_pid ]; do
+        while [ -f /tmp/powercontrol-dummy-pid ]; do
             sleep 1
         done
     fi
