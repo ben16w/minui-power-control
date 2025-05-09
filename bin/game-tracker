@@ -1,0 +1,47 @@
+#!/bin/sh
+
+TRACKER_PATH="$SDCARD_PATH/Tools/$PLATFORM/Game Tracker.pak/gametimectl.elf"
+
+main() {
+    if [ "$#" -lt 1 ] || [ "$#" -gt 1 ]; then
+        echo "Invalid number of arguments. Usage: $0 <start|stop>"
+        exit 1
+    fi
+
+    if [ ! -f /tmp/powercontrol-rom-path ]; then
+        echo "ROM path file not found. Unable to $1 the Game Tracker."
+        exit
+    fi
+
+    if [ ! -f "$TRACKER_PATH" ]; then
+        echo "Game tracker $TRACKER_PATH not found. Unable to $1 the Game Tracker."
+        exit
+    fi
+
+    ACTION="$1"
+    ROM_PATH=$(cat /tmp/powercontrol-rom-path)
+
+    if [ ! -f "$ROM_PATH" ]; then
+        echo "Invalid ROM path: $ROM_PATH"
+        exit 1
+    fi
+
+    case "$ACTION" in
+        start)
+            if [ -n "$ROM_PATH" ]; then
+                "$TRACKER_PATH" start "$ROM_PATH"
+            fi
+            ;;
+        stop)
+            if [ -n "$ROM_PATH" ]; then
+                "$TRACKER_PATH" stop "$ROM_PATH"
+            fi
+            ;;
+        *)
+            echo "Unknown action: $ACTION. Use 'start' or 'stop'."
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

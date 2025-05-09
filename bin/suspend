@@ -25,6 +25,7 @@ suspend_system() {
 
     if [ -n "$PID" ]; then
         echo "Suspending emulator process with PID: $PID"
+        game-tracker stop
         kill -STOP "$PID" || true
     fi
 
@@ -32,13 +33,14 @@ suspend_system() {
 
     if [ -n "$PID" ]; then
         echo "Resuming emulator process with PID: $PID"
+        game-tracker start
         kill -CONT "$PID" || true
     fi
 }
 
 fallback_suspend() {
     PID="$1"
-    echo "Fallback suspend for emulator process with PID: $PID"
+    echo "Using fallback suspend method..."
 
     if [ -z "$PID" ]; then
         echo "No PID provided for fallback suspend."
@@ -48,18 +50,22 @@ fallback_suspend() {
     if [ ! -f /tmp/powercontrol-suspend-active ]; then
         echo "Pausing emulator process with PID: $PID"
         kill -STOP "$PID" || true
+        game-tracker stop
         touch /tmp/powercontrol-suspend-active
     else
         echo "Resuming emulator process with PID: $PID"
         kill -CONT "$PID" || true
+        game-tracker start
         rm -f /tmp/powercontrol-suspend-active
     fi
 }
 
 main() {
+    echo "Starting suspend script..."
+
     if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
-        echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
+        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
+        echo "Emulator PID file found with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
             echo "Emulator process $PROCESS_PID not found."
