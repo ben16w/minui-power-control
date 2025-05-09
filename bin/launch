@@ -77,10 +77,17 @@ main() {
         exit 1
     fi
 
+    if [ ! -f "$BIN_DIR/game-tracker" ]; then
+        echo "game-tracker script not found."
+        exit 1
+    fi
+
+
     chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
     chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
+    chmod +x "$BIN_DIR/game-tracker"
 
     EMULATOR_BIN=""
     ROM_PATH=""
@@ -103,17 +110,14 @@ main() {
             -h|--help)
                 print_usage
                 ;;
-            --)
-                shift
-                break
-                ;;
             -*)
                 echo "Unknown option: $1"
                 print_usage
                 ;;
             *)
-                # Positional argument (fallback)
-                break
+                # Treat positional argument as -e (emulator binary)
+                EMULATOR_BIN="$1"
+                shift
                 ;;
         esac
     done

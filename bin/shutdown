@@ -28,7 +28,7 @@ show_message() {
 shutdown_system() {
     echo "Shutting down system..."
     show_message "Powering off" forever
-    tracker stop
+    game-tracker stop
     sync
     poweroff
     while :; do
@@ -37,11 +37,7 @@ shutdown_system() {
 }
 
 main() {
-    if [ ! -f "$BIN_DIR/tracker" ]; then
-        echo "tracker script not found."
-        exit 1
-    fi
-    chmod +x "$BIN_DIR/tracker"
+    echo "Starting shutdown script..."
 
     if [ -f /tmp/powercontrol-emulator-pid ]; then
         PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)

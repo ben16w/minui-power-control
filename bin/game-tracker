@@ -2,23 +2,19 @@
 
 TRACKER_PATH="$SDCARD_PATH/Tools/$PLATFORM/Game Tracker.pak/gametimectl.elf"
 
-print_usage() {
-    echo "Usage: $0 start|stop"
-    exit 1
-}
-
 main() {
     if [ "$#" -lt 1 ] || [ "$#" -gt 1 ]; then
-        print_usage
+        echo "Invalid number of arguments. Usage: $0 <start|stop>"
+        exit 1
     fi
 
     if [ ! -f /tmp/powercontrol-rom-path ]; then
-        echo "ROM path file not found. Unable to start or stop the tracker for the emulator."
+        echo "ROM path file not found. Unable to $1 the Game Tracker."
         exit
     fi
 
     if [ ! -f "$TRACKER_PATH" ]; then
-        echo "Game tracker $TRACKER_PATH not found. Unable to start or stop the tracker for the emulator."
+        echo "Game tracker $TRACKER_PATH not found. Unable to $1 the Game Tracker."
         exit
     fi
 
@@ -42,7 +38,8 @@ main() {
             fi
             ;;
         *)
-            print_usage
+            echo "Unknown action: $ACTION. Use 'start' or 'stop'."
+            exit 1
             ;;
     esac
 }
