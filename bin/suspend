@@ -68,7 +68,7 @@ main() {
     chmod +x "$BIN_DIR/tracker"
 
     if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
+        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then

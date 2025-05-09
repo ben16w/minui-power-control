@@ -74,7 +74,11 @@ func main() {
 
 func runScript(scriptPath string) {
 	cmd := exec.Command(scriptPath)
-	if err := cmd.Run(); err != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		log.Printf("Failed to run %s script: %v", scriptPath, err)
+	}
+	if len(output) > 0 {
+		log.Printf("%s", output)
 	}
 }
