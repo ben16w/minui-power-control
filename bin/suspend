@@ -34,6 +34,9 @@ suspend_system() {
         echo "Resuming emulator process with PID: $PID"
         kill -CONT "$PID" || true
     fi
+
+    echo "Syncing settings..."
+    "$SYSTEM_PATH/bin/syncsettings.elf" || true
 }
 
 fallback_suspend() {
@@ -58,7 +61,7 @@ fallback_suspend() {
 
 main() {
     if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
+        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
