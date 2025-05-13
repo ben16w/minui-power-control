@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-func setBrightness(value int, isTrimui bool, isRg35xxplus bool) error {
+func setBrightness(value int, isTrimui bool, isRg35xxplus bool, isMiyoomini bool) error {
 	// Clamp value
 	if value < 0 {
 		value = 0
@@ -18,13 +18,20 @@ func setBrightness(value int, isTrimui bool, isRg35xxplus bool) error {
 
 	var raw int
 	if isTrimui {
-		mapBrick := [11]int{0, 1, 8, 16, 32, 48, 72, 96, 128, 176, 255}
-		raw = mapBrick[value]
+		mapTrimui := [11]int{0, 1, 8, 16, 32, 48, 72, 96, 128, 176, 255}
+		raw = mapTrimui[value]
 		applyBrightnessIoctl(raw)
 	} else if isRg35xxplus {
 		mapRg35xxplus := [11]int{0, 4, 6, 10, 16, 32, 48, 64, 96, 160, 255}
 		raw = mapRg35xxplus[value]
 		applyBrightnessIoctl(raw)
+	} else if isMiyoomini {
+		if value == 0 {
+			raw = 6
+		} else {
+			raw = value * 10
+		}
+		applyBrightnessFile(raw)
 	}
 
 	return nil
@@ -55,6 +62,20 @@ func applyBrightnessIoctl(val int) error {
 	return nil
 }
 
+func applyBrightnessFile(val int) error {
+	file, err := os.OpenFile("/sys/class/pwm/pwmchip0/pwm0/duty_cycle", os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open duty_cycle: %w", err)
+	}
+	defer file.Close()
+
+	_, err = fmt.Fprintf(file, "%d", val)
+	if err != nil {
+		return fmt.Errorf("failed to write brightness: %w", err)
+	}
+	return nil
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: set-brightness <value 0-10>")
@@ -71,9 +92,10 @@ func main() {
 	var (
 		isTrimui     = false
 		isRg35xxplus = false
+		isMiyoomini  = false
 	)
 
-	if err := setBrightness(val, isTrimui, isRg35xxplus); err != nil {
+	if err := setBrightness(val, isTrimui, isRg35xxplus, isMiyoomini); err != nil {
 		fmt.Printf("Failed to set brightness: %v\n", err)
 		os.Exit(1)
 	}
