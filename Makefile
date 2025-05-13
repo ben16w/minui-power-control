@@ -12,7 +12,7 @@ clean:
 	rm -f bin/*/minui-presenter
 	find bin -type d -empty -delete
 
-build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
+build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler bin/$(arch)/set-brightness) makeself
 	@echo "Building for $(ARCHITECTURES)"
 	@echo "Building for $(PLATFORMS)"
 	@echo "Build complete"
@@ -26,6 +26,11 @@ bin/%/button-handler:
 	mkdir -p bin/$*
 	CGO_ENABLED=0 GOOS=linux GOARCH="$*" go build -o bin/$*/button-handler -ldflags="-s -w" -trimpath ./src/button-handler.go
 	chmod +x bin/$*/button-handler
+
+bin/%/set-brightness:
+	mkdir -p bin/$*
+	CGO_ENABLED=0 GOOS=linux GOARCH="$*" go build -o bin/$*/set-brightness -ldflags="-s -w" -trimpath ./src/set-brightness.go
+	chmod +x bin/$*/set-brightness
 
 makeself:
 	curl -f -o makeself.run -sSL https://github.com/megastep/makeself/releases/download/release-$(MAKESELF_VERSION)/makeself-$(MAKESELF_VERSION).run
