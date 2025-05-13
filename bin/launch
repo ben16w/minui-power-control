@@ -47,6 +47,11 @@ main() {
         exit 1
     fi
 
+    if ! command -v syncsettings.elf >/dev/null 2>&1; then
+        echo "syncsettings.elf binary not found."
+        exit 1
+    fi
+
     if ! command -v minui-presenter >/dev/null 2>&1; then
         echo "minui-presenter binary not found."
         exit 1
@@ -54,6 +59,11 @@ main() {
 
     if ! command -v button-handler >/dev/null 2>&1; then
         echo "button-handler binary not found."
+        exit 1
+    fi
+
+    if ! command -v set-brightness >/dev/null 2>&1; then
+        echo "set-brightness binary not found."
         exit 1
     fi
 

@@ -35,7 +35,7 @@ suspend_system() {
         kill -CONT "$PID" || true
     fi
 
-    echo "Syncing settings..."
+    set-brightness 2
     "$SYSTEM_PATH/bin/syncsettings.elf" || true
 }
 
@@ -51,10 +51,12 @@ fallback_suspend() {
     if [ ! -f /tmp/powercontrol-suspend-active ]; then
         echo "Pausing emulator process with PID: $PID"
         kill -STOP "$PID" || true
+        set-brightness 0
         touch /tmp/powercontrol-suspend-active
     else
         echo "Resuming emulator process with PID: $PID"
         kill -CONT "$PID" || true
+        "$SYSTEM_PATH/bin/syncsettings.elf" || true
         rm -f /tmp/powercontrol-suspend-active
     fi
 }

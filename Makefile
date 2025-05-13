@@ -30,17 +30,17 @@ bin/%/button-handler:
 
 bin/tg5040/set-brightness:
 	mkdir -p bin/tg5040
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.isTrimui=true" -trimpath ./src/set-brightness.go
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
 	chmod +x bin/tg5040/set-brightness
 
 bin/miyoomini/set-brightness:
 	mkdir -p bin/miyoomini
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm" go build -o bin/miyoomini/set-brightness -ldflags="-s -w -X main.isMiyoomini=true" -trimpath ./src/set-brightness.go
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm" go build -o bin/miyoomini/set-brightness -ldflags="-s -w -X main.platformName=miyoomini" -trimpath ./src/set-brightness.go
 	chmod +x bin/miyoomini/set-brightness
 
 bin/rg35xxplus/set-brightness:
 	mkdir -p bin/rg35xxplus
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/rg35xxplus/set-brightness -ldflags="-s -w -X main.isRg35xxplus=true" -trimpath ./src/set-brightness.go
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/rg35xxplus/set-brightness -ldflags="-s -w -X main.platformName=rg35xxplus" -trimpath ./src/set-brightness.go
 	chmod +x bin/rg35xxplus/set-brightness
 
 makeself:

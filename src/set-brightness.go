@@ -8,7 +8,12 @@ import (
 	"unsafe"
 )
 
-func setBrightness(value int, isTrimui bool, isRg35xxplus bool, isMiyoomini bool) error {
+// Platform identifier: set to one of "tg5040", "miyoomini", or "rg35xxplus" at compile time
+var (
+	platformName = "none"
+)
+
+func setBrightness(value int, platformName string) error {
 	// Clamp value
 	if value < 0 {
 		value = 0
@@ -17,21 +22,21 @@ func setBrightness(value int, isTrimui bool, isRg35xxplus bool, isMiyoomini bool
 	}
 
 	var raw int
-	if isTrimui {
+	if platformName == "tg5040" {
 		mapTrimui := [11]int{0, 1, 8, 16, 32, 48, 72, 96, 128, 176, 255}
 		raw = mapTrimui[value]
 		applyBrightnessIoctl(raw)
-	} else if isRg35xxplus {
-		mapRg35xxplus := [11]int{0, 4, 6, 10, 16, 32, 48, 64, 96, 160, 255}
-		raw = mapRg35xxplus[value]
-		applyBrightnessIoctl(raw)
-	} else if isMiyoomini {
+	} else if platformName == "miyoomini" {
 		if value == 0 {
 			raw = 6
 		} else {
 			raw = value * 10
 		}
 		applyBrightnessFile(raw)
+	} else if platformName == "rg35xxplus" {
+		mapRg35xxplus := [11]int{0, 4, 6, 10, 16, 32, 48, 64, 96, 160, 255}
+		raw = mapRg35xxplus[value]
+		applyBrightnessIoctl(raw)
 	}
 
 	return nil
@@ -88,14 +93,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Set these flags at compile time using -ldflags "-X main.isTrimui=true -X main.isRg35xxplus=false"
-	var (
-		isTrimui     = false
-		isRg35xxplus = false
-		isMiyoomini  = false
-	)
+	if platformName != "tg5040" && platformName != "miyoomini" && platformName != "rg35xxplus" {
+		fmt.Println("Error: platformName not set to one of 'tg5040', 'miyoomini', or 'rg35xxplus'")
+		os.Exit(1)
+	}
 
-	if err := setBrightness(val, isTrimui, isRg35xxplus, isMiyoomini); err != nil {
+	if err := setBrightness(val, platformName); err != nil {
 		fmt.Printf("Failed to set brightness: %v\n", err)
 		os.Exit(1)
 	}
