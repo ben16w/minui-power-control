@@ -1,6 +1,2 @@
-acln.ro/ioctl v0.10.0 h1:yBgwVmq6aWYel/O4swYHQImLPqT5KY8cizdu1LbkTXs=
-acln.ro/ioctl v0.10.0/go.mod h1:tpaHJ/mjAMo698c3Sxn3spBRGOrLhhkIjd/HFFdgkA8=
 github.com/holoplot/go-evdev v0.0.0-20240306072622-217e18f17db1 h1:92OsBIf5KB1Tatx+uUGOhah73jyNUrt7DmfDRXXJ5Xo=
 github.com/holoplot/go-evdev v0.0.0-20240306072622-217e18f17db1/go.mod h1:iHAf8OIncO2gcQ8XOjS7CMJ2aPbX2Bs0wl5pZyanEqk=
-golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc h1:SdCq5U4J+PpbSDIl9bM0V1e1Ug1jsnBkAFvTs1htn7U=
-golang.org/x/sys v0.0.0-20181031143558-9b800f95dbbc/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
