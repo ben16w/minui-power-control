@@ -53,6 +53,6 @@ release: build
 	chmod +x bin/launch
 	chmod +x bin/shutdown
 	chmod +x bin/suspend
-	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG)" ./launch
+	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG) " ./launch
 	chmod +x ./dist/$(TARGET)
 	@echo "Release created at dist/$(TARGET)"
