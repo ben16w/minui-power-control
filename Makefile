@@ -10,9 +10,10 @@ MAKESELF_VERSION := 2.5.0
 clean:
 	rm -f bin/*/button-handler
 	rm -f bin/*/minui-presenter
+	rm -f bin/*/set-brightness
 	find bin -type d -empty -delete
 
-build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
+build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter bin/$(platform)/set-brightness) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
 	@echo "Building for $(ARCHITECTURES)"
 	@echo "Building for $(PLATFORMS)"
 	@echo "Build complete"
@@ -27,6 +28,21 @@ bin/%/button-handler:
 	CGO_ENABLED=0 GOOS=linux GOARCH="$*" go build -o bin/$*/button-handler -ldflags="-s -w" -trimpath ./src/button-handler.go
 	chmod +x bin/$*/button-handler
 
+bin/tg5040/set-brightness:
+	mkdir -p bin/tg5040
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
+	chmod +x bin/tg5040/set-brightness
+
+bin/miyoomini/set-brightness:
+	mkdir -p bin/miyoomini
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm" go build -o bin/miyoomini/set-brightness -ldflags="-s -w -X main.platformName=miyoomini" -trimpath ./src/set-brightness.go
+	chmod +x bin/miyoomini/set-brightness
+
+bin/rg35xxplus/set-brightness:
+	mkdir -p bin/rg35xxplus
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/rg35xxplus/set-brightness -ldflags="-s -w -X main.platformName=rg35xxplus" -trimpath ./src/set-brightness.go
+	chmod +x bin/rg35xxplus/set-brightness
+
 makeself:
 	curl -f -o makeself.run -sSL https://github.com/megastep/makeself/releases/download/release-$(MAKESELF_VERSION)/makeself-$(MAKESELF_VERSION).run
 	sh makeself.run --target makeself
@@ -37,6 +53,6 @@ release: build
 	chmod +x bin/launch
 	chmod +x bin/shutdown
 	chmod +x bin/suspend
-	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG)" ./launch
+	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG) " ./launch
 	chmod +x ./dist/$(TARGET)
 	@echo "Release created at dist/$(TARGET)"
