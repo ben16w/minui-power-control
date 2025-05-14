@@ -10,17 +10,10 @@ import (
 
 // Platform identifier: set to one of "tg5040", "miyoomini", or "rg35xxplus" at compile time
 var (
-	platformName = "none"
+	platformName string
 )
 
 func setBrightness(value int, platformName string) error {
-	// Clamp value
-	if value < 0 {
-		value = 0
-	} else if value > 10 {
-		value = 10
-	}
-
 	var raw int
 	if platformName == "tg5040" {
 		mapTrimui := [11]int{0, 1, 8, 16, 32, 48, 72, 96, 128, 176, 255}
@@ -32,7 +25,7 @@ func setBrightness(value int, platformName string) error {
 		} else {
 			raw = value * 10
 		}
-		applyBrightnessFile(raw)
+		applybrightnessDevice(raw)
 	} else if platformName == "rg35xxplus" {
 		mapRg35xxplus := [11]int{0, 4, 6, 10, 16, 32, 48, 64, 96, 160, 255}
 		raw = mapRg35xxplus[value]
@@ -43,40 +36,45 @@ func setBrightness(value int, platformName string) error {
 }
 
 func applyBrightnessIoctl(val int) error {
-	const DISP_LCD_SET_BRIGHTNESS = 0x102
-	param := [4]uint64{0, uint64(val), 0, 0}
+	const brightnessDevice = "/dev/disp"
+	const brightnessHex = 0x102
 
-	fd, err := os.OpenFile("/dev/disp", os.O_RDWR, 0)
+	fd, err := os.OpenFile(brightnessDevice, os.O_RDWR, 0)
 	if err != nil {
-		fmt.Printf("Error opening /dev/disp: %v\n", err)
+		fmt.Printf("Error opening %s: %v\n", brightnessDevice, err)
 		return err
 	}
 	defer fd.Close()
 
+	param := [4]uint64{0, uint64(val), 0, 0}
 	_, _, errno := syscall.Syscall(
 		syscall.SYS_IOCTL,
 		fd.Fd(),
-		DISP_LCD_SET_BRIGHTNESS,
+		brightnessHex,
 		uintptr(unsafe.Pointer(&param[0])),
 	)
 	if errno != 0 {
-		fmt.Printf("Error during ioctl: %v\n", errno)
-		return fmt.Errorf("ioctl error: %v", errno)
+		fmt.Printf("Failed to set ioctl: %v\n", errno)
+		return errno
 	}
 
 	return nil
 }
 
-func applyBrightnessFile(val int) error {
-	file, err := os.OpenFile("/sys/class/pwm/pwmchip0/pwm0/duty_cycle", os.O_WRONLY, 0)
+func applybrightnessDevice(val int) error {
+	const brightnessDevice = "/sys/class/pwm/pwmchip0/pwm0/brightnessDevice"
+
+	file, err := os.OpenFile(brightnessDevice, os.O_WRONLY, 0)
 	if err != nil {
-		return fmt.Errorf("failed to open duty_cycle: %w", err)
+		fmt.Errorf("Failed to open %s: %w", brightnessDevice, err)
+		return err
 	}
 	defer file.Close()
 
 	_, err = fmt.Fprintf(file, "%d", val)
 	if err != nil {
-		return fmt.Errorf("failed to write brightness: %w", err)
+		fmt.Errorf("Failed to set brightness: %w", err)
+		return err
 	}
 	return nil
 }
@@ -94,7 +92,7 @@ func main() {
 	}
 
 	if platformName != "tg5040" && platformName != "miyoomini" && platformName != "rg35xxplus" {
-		fmt.Println("Error: platformName not set to one of 'tg5040', 'miyoomini', or 'rg35xxplus'")
+		fmt.Println("Please set platformName to one of 'tg5040', 'miyoomini', or 'rg35xxplus'")
 		os.Exit(1)
 	}
 
