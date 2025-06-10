@@ -118,7 +118,7 @@ jobs:
           GIT_NEXT_TAG: ${{ needs.compute-tag.outputs.tag }}
 
       - name: Release
-        uses: softprops/action-gh-release@v2.2.2
+        uses: softprops/action-gh-release@v2.3.0
         with:
           files: dist/*
           generate_release_notes: true
