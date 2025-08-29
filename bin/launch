@@ -9,8 +9,16 @@ fi
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
 print_usage() {
-    echo "Usage: $0 <emulator-binary>"
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -e, --emulator <emulator_binary>  Specify the emulator binary to monitor."
+    echo "  -r, --rom <rom_path>              Specify the ROM path."
+    #echo "  -s, --save-key <key>              Specify the save key."
+    echo "  -h, --help                        Show this help message and exit."
+    echo ""
     echo "If no emulator binary is specified, a dummy PID file will be created."
+    exit 1
 }
 
 cleanup() {
@@ -22,6 +30,8 @@ cleanup() {
     fi
     rm -f /tmp/powercontrol-emulator-pid
     rm -f /tmp/powercontrol-dummy-pid
+    rm -f /tmp/powercontrol-rom-path
+    rm -f /tmp/powercontrol-suspend-active
 }
 
 main() {
@@ -67,16 +77,57 @@ main() {
         exit 1
     fi
 
+    if [ ! -f "$BIN_DIR/game-tracker" ]; then
+        echo "game-tracker script not found."
+        exit 1
+    fi
+
+
     chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
     chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
+    chmod +x "$BIN_DIR/game-tracker"
 
-    if [ "$#" -eq 0 ]; then
-        echo "Emulator process not specified. Creating a dummy PID file."
-        touch /tmp/powercontrol-dummy-pid
-    elif [ "$#" -eq 1 ]; then
-        EMULATOR_BIN="$1"
+    EMULATOR_BIN=""
+    ROM_PATH=""
+    #SAVE_KEY=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -e|--emulator)
+                EMULATOR_BIN="$2"
+                shift 2
+                ;;
+            -r|--rom)
+                ROM_PATH="$2"
+                shift 2
+                ;;
+            # -s|--save-key)
+            #     SAVE_KEY="$2"
+            #     shift 2
+            #     ;;
+            -h|--help)
+                print_usage
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                print_usage
+                ;;
+            *)
+                # Treat positional argument as -e (emulator binary)
+                EMULATOR_BIN="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [ -n "$ROM_PATH" ]; then
+        echo "$ROM_PATH" > /tmp/powercontrol-rom-path
+        echo "ROM path: $ROM_PATH"
+    fi
+
+    if [ -n "$EMULATOR_BIN" ]; then
         EMULATOR_PROCESS_PID=""
 
         for _ in $(seq 1 10); do
@@ -96,8 +147,10 @@ main() {
         echo "$EMULATOR_PROCESS_PID" > /tmp/powercontrol-emulator-pid
         echo "Emulator PID: $EMULATOR_PROCESS_PID"
     else
-        print_usage
+        echo "Creating dummy PID file..."
+        touch /tmp/powercontrol-dummy-pid
     fi
+
 
     echo "Starting button-handler..."
     button-handler &

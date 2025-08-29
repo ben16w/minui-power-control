@@ -34,18 +34,38 @@ Currently, the app supports the following features:
 ## Usage
 
 ```bash
-minui-power-control <emulator> &
+minui-power-control [OPTIONS]
 ```
 
-Before starting `minui-power-control`, make sure the emulator is already running. Replace `<emulator>` with the actual name of the emulator’s binary. The app will run in the background, watching for power button events and carrying out the actions. Once the emulator closes, the app will automatically exit as well. To make things more convenient and reliable, it’s best to start the app in the emulator’s `launch.sh` script, placing it before the emulator command. This makes sure it launches alongside the emulator, removing the need to start it manually.
+**Options:**
 
-Alternatively, it is possible to run `minui-power-control` without specifying an emulator:
+- `-e`, `--emulator <emulator_binary>` Specify the emulator binary to monitor.
+- `-r`, `--rom <rom_path>` Specify the ROM path.
+- `-h`, `--help` Show help message and exit.
+
+If no emulator binary is specified, a dummy PID file will be created at `/tmp/powercontrol-dummy-pid` and the app will continue running until that file is deleted. This is useful for testing or for scenarios where the name of the emulator is not known in advance.
+
+**How to use:**
+
+Before starting `minui-power-control`, make sure the emulator is already running. Use the `-e` or `--emulator` option to specify the emulator’s binary. The app will run in the background, watching for power button events and carrying out the actions. Once the emulator closes, the app will automatically exit as well. To make things more convenient and reliable, it’s best to start the app in the emulator’s `launch.sh` script, placing it before the emulator command. This ensures it launches alongside the emulator, removing the need to start it manually.
+
+Example:
 
 ```bash
-minui-power-control &
+minui-power-control -e <emulator_binary> &
 ```
 
-In this mode, the app creates a file at `/tmp/powercontrol-dummy-pid` and will continue running until that file is deleted. This is useful for testing or for scenarios where the name of the emulator is not known in advance.
+You can also specify the ROM path if needed:
+
+```bash
+minui-power-control -e <emulator_binary> -r <rom_path> &
+```
+
+To see all available options, run:
+
+```bash
+minui-power-control --help
+```
 
 ## Building
 

@@ -28,6 +28,7 @@ show_message() {
 shutdown_system() {
     echo "Shutting down system..."
     show_message "Powering off" forever
+    game-tracker stop
     sync
     poweroff
     while :; do
@@ -36,8 +37,10 @@ shutdown_system() {
 }
 
 main() {
+    echo "Starting shutdown script..."
+
     if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/emulator_pid)
+        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
