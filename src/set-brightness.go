@@ -100,4 +100,5 @@ func main() {
 		fmt.Printf("Failed to set brightness: %v\n", err)
 		os.Exit(1)
 	}
+
 }
