@@ -41,11 +41,22 @@ main() {
         fi
     fi
 
-    allowed_platforms="tg5040 rg35xxplus miyoomini"
+    if [ "$PLATFORM" = "tg5050" ] && [ -z "$DEVICE" ]; then
+        export DEVICE="smartpros"
+    fi
+
+    if [ "$PLATFORM" = "my355" ] && [ -z "$DEVICE" ]; then
+        export DEVICE="my355"
+    fi
+
+    allowed_platforms="tg5040 tg5050 my355 rg35xxplus miyoomini"
     if ! echo "$allowed_platforms" | grep -q "$PLATFORM"; then
         echo "$PLATFORM is not a supported platform."
         exit 1
     fi
+
+    # Pak launchers normally export SYSTEM_PATH; default it for standalone runs.
+    export SYSTEM_PATH="${SYSTEM_PATH:-/mnt/SDCARD/.system/$PLATFORM}"
 
     if ! command -v minui-presenter >/dev/null 2>&1; then
         echo "minui-presenter binary not found."
