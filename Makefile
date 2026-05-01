@@ -10,9 +10,10 @@ MAKESELF_VERSION := 2.5.0
 clean:
 	rm -f bin/*/button-handler
 	rm -f bin/*/minui-presenter
+	rm -f bin/*/set-brightness
 	find bin -type d -empty -delete
 
-build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
+build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) bin/tg5040/set-brightness $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
 	@echo "Building for $(ARCHITECTURES)"
 	@echo "Building for $(PLATFORMS)"
 	@echo "Build complete"
@@ -26,6 +27,11 @@ bin/%/button-handler:
 	mkdir -p bin/$*
 	CGO_ENABLED=0 GOOS=linux GOARCH="$*" go build -o bin/$*/button-handler -ldflags="-s -w" -trimpath ./src/button-handler.go
 	chmod +x bin/$*/button-handler
+
+bin/tg5040/set-brightness:
+	mkdir -p bin/tg5040
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
+	chmod +x bin/tg5040/set-brightness
 
 makeself:
 	curl -f -o makeself.run -sSL https://github.com/megastep/makeself/releases/download/release-$(MAKESELF_VERSION)/makeself-$(MAKESELF_VERSION).run

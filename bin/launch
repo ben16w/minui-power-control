@@ -78,6 +78,18 @@ main() {
         exit 1
     fi
 
+    if [ "$PLATFORM" = "tg5040" ]; then
+        if ! command -v syncsettings.elf >/dev/null 2>&1; then
+            echo "syncsettings.elf binary not found."
+            exit 1
+        fi
+        if ! command -v set-brightness >/dev/null 2>&1; then
+            echo "set-brightness binary not found."
+            exit 1
+        fi
+        chmod +x "$BIN_DIR/$PLATFORM/set-brightness"
+    fi
+
     chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
     chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
