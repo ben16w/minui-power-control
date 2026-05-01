@@ -45,7 +45,7 @@ jobs:
           subject-path: "dist/${{ steps.app-name.outputs.APP_NAME }}"
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: "${{ steps.app-name.outputs.APP_NAME }}"
           path: "dist/${{ steps.app-name.outputs.APP_NAME }}"
