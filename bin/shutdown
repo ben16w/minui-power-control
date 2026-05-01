@@ -29,7 +29,30 @@ shutdown_system() {
     echo "Shutting down system..."
     show_message "Powering off" forever
     sync
-    poweroff
+    if [ "$IS_NEXT" = "yes" ]; then
+        # NextUI's MinUI.pak/launch.sh polls /tmp/poweroff and calls poweroff_next
+        # itself once the foreground process exits.
+        touch /tmp/poweroff
+        killall -TERM nextui.elf 2>/dev/null || true
+        if [ -f /tmp/next ]; then
+            ACTIVE_PAK=$(cat /tmp/next | tr -d "'\"")
+            if [ -n "$ACTIVE_PAK" ]; then
+                PAK_DIR=$(dirname "$ACTIVE_PAK")
+                # BusyBox has no pkill; walk /proc and match cmdline ourselves.
+                for proc in /proc/[0-9]*/cmdline; do
+                    cmdline=$(tr '\0' ' ' < "$proc" 2>/dev/null)
+                    case "$cmdline" in
+                        *"$PAK_DIR"*)
+                            pid=${proc#/proc/}; pid=${pid%/cmdline}
+                            kill -TERM "$pid" 2>/dev/null || true
+                            ;;
+                    esac
+                done
+            fi
+        fi
+    else
+        poweroff
+    fi
     while :; do
         sleep 1
     done

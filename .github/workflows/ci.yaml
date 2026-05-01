@@ -22,14 +22,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3.6.0
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3.10.0
+        uses: docker/setup-buildx-action@v3.11.1
 
       - name: Create release
         run: make clean build release
@@ -40,12 +40,12 @@ jobs:
           echo "APP_NAME=$(grep ^TARGET Makefile | awk '{print $3}')" >> $GITHUB_OUTPUT
 
       - name: Attest Build Provenance
-        uses: actions/attest-build-provenance@v2.3.0
+        uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: "dist/${{ steps.app-name.outputs.APP_NAME }}"
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: "${{ steps.app-name.outputs.APP_NAME }}"
           path: "dist/${{ steps.app-name.outputs.APP_NAME }}"
@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
 
@@ -67,7 +67,7 @@ jobs:
           echo "APP_NAME=$(grep ^TARGET Makefile | awk '{print $3}')" >> $GITHUB_OUTPUT
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v6.0.0
         with:
           name: "${{ steps.app-name.outputs.APP_NAME }}"
           path: "dist"

@@ -2,9 +2,9 @@ TARGET = minui-power-control
 TAG ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "")
 
 ARCHITECTURES := arm arm64
-PLATFORMS := tg5040 miyoomini rg35xxplus
+PLATFORMS := tg5040 tg5050 my355 miyoomini rg35xxplus
 
-MINUI_PRESENTER_VERSION := 0.9.0
+MINUI_PRESENTER_VERSION := 0.12.0
 MAKESELF_VERSION := 2.5.0
 
 clean:
