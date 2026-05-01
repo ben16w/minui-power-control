@@ -33,7 +33,6 @@ bin/tg5040/set-brightness:
 	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
 	chmod +x bin/tg5040/set-brightness
 
-
 makeself:
 	curl -f -o makeself.run -sSL https://github.com/megastep/makeself/releases/download/release-$(MAKESELF_VERSION)/makeself-$(MAKESELF_VERSION).run
 	sh makeself.run --target makeself
