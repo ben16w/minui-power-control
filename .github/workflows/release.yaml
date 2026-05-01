@@ -25,7 +25,7 @@ jobs:
     name: compute-tag
     runs-on: ubuntu-24.04
     outputs:
-      tag: ${{ steps.next-tag.outputs.tag }}
+      tag: ${{ steps.next-tag.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5.0.0
