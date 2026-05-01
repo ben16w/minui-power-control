@@ -13,7 +13,7 @@ clean:
 	rm -f bin/*/set-brightness
 	find bin -type d -empty -delete
 
-build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter bin/$(platform)/set-brightness) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
+build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) bin/tg5040/set-brightness $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
 	@echo "Building for $(ARCHITECTURES)"
 	@echo "Building for $(PLATFORMS)"
 	@echo "Build complete"
@@ -33,15 +33,6 @@ bin/tg5040/set-brightness:
 	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
 	chmod +x bin/tg5040/set-brightness
 
-bin/miyoomini/set-brightness:
-	mkdir -p bin/miyoomini
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm" go build -o bin/miyoomini/set-brightness -ldflags="-s -w -X main.platformName=miyoomini" -trimpath ./src/set-brightness.go
-	chmod +x bin/miyoomini/set-brightness
-
-bin/rg35xxplus/set-brightness:
-	mkdir -p bin/rg35xxplus
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/rg35xxplus/set-brightness -ldflags="-s -w -X main.platformName=rg35xxplus" -trimpath ./src/set-brightness.go
-	chmod +x bin/rg35xxplus/set-brightness
 
 makeself:
 	curl -f -o makeself.run -sSL https://github.com/megastep/makeself/releases/download/release-$(MAKESELF_VERSION)/makeself-$(MAKESELF_VERSION).run
@@ -53,6 +44,6 @@ release: build
 	chmod +x bin/launch
 	chmod +x bin/shutdown
 	chmod +x bin/suspend
-	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG) " ./launch
+	sh makeself/makeself.sh --noprogress bin dist/$(TARGET) "$(TARGET) $(TAG)" ./launch
 	chmod +x ./dist/$(TARGET)
 	@echo "Release created at dist/$(TARGET)"

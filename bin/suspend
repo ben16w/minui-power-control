@@ -35,8 +35,10 @@ suspend_system() {
         kill -CONT "$PID" || true
     fi
 
-    set-brightness 2
-    syncsettings.elf
+    if [ "$PLATFORM" = "tg5040" ]; then
+        set-brightness 2
+        syncsettings.elf
+    fi
 }
 
 fallback_suspend() {
@@ -51,12 +53,12 @@ fallback_suspend() {
     if [ ! -f /tmp/powercontrol-suspend-active ]; then
         echo "Pausing emulator process with PID: $PID"
         kill -STOP "$PID" || true
-        set-brightness 0
+        [ "$PLATFORM" = "tg5040" ] && set-brightness 0
         touch /tmp/powercontrol-suspend-active
     else
         echo "Resuming emulator process with PID: $PID"
         kill -CONT "$PID" || true
-        syncsettings.elf
+        [ "$PLATFORM" = "tg5040" ] && syncsettings.elf
         rm -f /tmp/powercontrol-suspend-active
     fi
 }

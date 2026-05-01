@@ -66,14 +66,14 @@ func applybrightnessDevice(val int) error {
 
 	file, err := os.OpenFile(brightnessDevice, os.O_WRONLY, 0)
 	if err != nil {
-		fmt.Errorf("Failed to open %s: %w", brightnessDevice, err)
+		fmt.Printf("Failed to open %s: %v\n", brightnessDevice, err)
 		return err
 	}
 	defer file.Close()
 
 	_, err = fmt.Fprintf(file, "%d", val)
 	if err != nil {
-		fmt.Errorf("Failed to set brightness: %w", err)
+		fmt.Printf("Failed to set brightness: %v\n", err)
 		return err
 	}
 	return nil
