@@ -4,8 +4,15 @@ setup() {
   load test_helper
   setup_power_control
 
-  # shutdown waits forever for the power to go, so the first wait ends the test
-  printf '#!/bin/sh\nkill -TERM "$PPID"\n' >"$STUB_DIR/sleep"
+  # shutdown waits forever for the power to go, so the first wait once it has
+  # asked for the power off ends the test
+  cat >"$STUB_DIR/sleep" <<EOF
+#!/bin/sh
+if grep -q "^poweroff" "\$STUB_LOG" || [ -f "$POWERCONTROL_TMP_DIR/poweroff" ]; then
+  kill -TERM "\$PPID"
+fi
+exec /bin/sleep 0.05
+EOF
 }
 
 @test "shutdown needs a pid file" {
@@ -78,4 +85,34 @@ setup() {
 
   run wait "$APP_PID"
   [ "$status" -eq 143 ]
+}
+
+@test "shutdown sends the save keys before ending the app" {
+  export POWERCONTROL_SAVE_KEYS="f5" POWERCONTROL_SAVE_DELAY=0
+  stub emit-key
+  start_detached_app
+  write_app_pid
+
+  run sh "$BIN_DIR/shutdown"
+  grep -q "^emit-key -k f5$" "$STUB_LOG"
+  [ "$(line_of "emit-key")" -lt "$(line_of "poweroff")" ]
+}
+
+@test "shutdown waits for the app to exit before powering off" {
+  start_detached_app "trap 'echo saved >>\"$STUB_LOG\"; exit 0' TERM; while :; do /bin/sleep 0.05; done"
+  write_app_pid
+
+  run sh "$BIN_DIR/shutdown"
+  [[ "$output" == *"App process $APP_PID exited."* ]]
+  [ "$(line_of "saved")" -lt "$(line_of "poweroff")" ]
+}
+
+@test "shutdown powers off when the app does not exit in time" {
+  export POWERCONTROL_EXIT_TIMEOUT=2
+  start_detached_app "trap '' TERM; while :; do /bin/sleep 0.05; done"
+  write_app_pid
+
+  run sh "$BIN_DIR/shutdown"
+  [[ "$output" == *"did not exit within 2s, shutting down anyway."* ]]
+  grep -q "^poweroff" "$STUB_LOG"
 }

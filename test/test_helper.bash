@@ -52,7 +52,7 @@ teardown() {
   for pid in ${APP_PID:-} ${OTHER_PID:-}; do
     [ "$pid" -gt 0 ] || continue
     kill -CONT "$pid" 2>/dev/null || true
-    kill "$pid" 2>/dev/null || true
+    kill -9 "$pid" 2>/dev/null || true
   done
 }
 
@@ -74,6 +74,13 @@ install_release_stubs() {
 start_app() {
   /bin/sleep "${1:-30}" 3>&- &
   APP_PID=$!
+}
+
+# an app the test shell is not the parent of, so it is reaped as soon as it
+# exits rather than lingering as a zombie that still answers kill -0. BODY
+# defaults to a long sleep.
+start_detached_app() {
+  APP_PID="$(sh -c "{ ${1:-/bin/sleep 30}; } </dev/null >/dev/null 2>&1 3>&- & echo \$!")"
 }
 
 write_app_pid() {

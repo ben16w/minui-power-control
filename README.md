@@ -31,7 +31,7 @@ Currently, the app supports the following features:
 
 - **Sleep**: On devices without deep sleep, which includes every device running MinUI, clicking the power button pauses the game and turns the screen off, the way MinUI's own sleep does. Clicking the power button again turns the screen back on and resumes the game. A device left asleep for two minutes shuts down, unless it is charging.
 
-- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
+- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. The app is asked to quit first, and the device waits up to `POWERCONTROL_EXIT_TIMEOUT` seconds, 5 by default, for it to exit, so an app that saves when asked to quit, such as DraStic, can finish. **Warning**: An app that does not save when asked to quit, and has no save keys set as described under [Usage](#usage), will lose any progress made since the last save. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
 
 Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.
 
@@ -55,7 +55,7 @@ minui-power-control <app-binary> "$ROM_PATH" &
 
 On a device without deep sleep, a device left asleep long enough powers off, and with the rom path the rom is resumed when the device next starts, the same way MinUI and NextUI resume their own games. The rom is started again from the beginning unless the app saves and restores its own state. On NextUI, the rom the pak was launched for is used when no path is passed.
 
-### Saving before sleeping
+### Saving before sleeping or shutting down
 
 `minui-power-control` cannot save on behalf of the app, but it can ask the app to save by pressing the keys the app saves on. Set `POWERCONTROL_SAVE_KEYS` to those keys before starting it, in the format [emit-key](https://github.com/josegonzalez/emit-key) takes, such as `f5` or `f1,f5:500000`:
 
@@ -63,7 +63,7 @@ On a device without deep sleep, a device left asleep long enough powers off, and
 POWERCONTROL_SAVE_KEYS="f5" minui-power-control <app-binary> &
 ```
 
-The keys are pressed before the device goes to sleep, while the app is still running, and the device waits `POWERCONTROL_SAVE_DELAY` seconds, 2 by default, for the save to finish. emit-key only presses keyboard keys, from `F1` to `F12`, `a` to `z`, `0` to `9` and `Esc`, so the app has to have one of them bound to saving. When `POWERCONTROL_SAVE_KEYS` is not set, no keys are pressed.
+The keys are pressed before the device goes to sleep or shuts down, while the app is still running, and the device waits `POWERCONTROL_SAVE_DELAY` seconds, 2 by default, for the save to finish. emit-key only presses keyboard keys, from `F1` to `F12`, `a` to `z`, `0` to `9` and `Esc`, so the app has to have one of them bound to saving. When `POWERCONTROL_SAVE_KEYS` is not set, no keys are pressed.
 
 Alternatively, it is possible to run `minui-power-control` without specifying an app binary:
 

@@ -67,6 +67,25 @@ shutdown_system() {
     done
 }
 
+# Apps such as DraStic save when asked to quit, which takes longer than the
+# signal does to arrive, so the power stays on until the app has exited or the
+# timeout runs out
+wait_for_exit() {
+    PID="$1"
+    exit_timeout="${POWERCONTROL_EXIT_TIMEOUT:-5}"
+
+    waited=0
+    while kill -0 "$PID" 2>/dev/null; do
+        if [ "$waited" -ge "$exit_timeout" ]; then
+            echo "App process $PID did not exit within ${exit_timeout}s, shutting down anyway."
+            return
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    echo "App process $PID exited."
+}
+
 main() {
     if [ -f "$TMP_DIR/powercontrol-app-pid" ]; then
         PROCESS_PID=$(cat "$TMP_DIR/powercontrol-app-pid")
@@ -85,7 +104,9 @@ main() {
             kill -CONT "$PROCESS_PID" || true
         fi
 
+        "$BIN_DIR/send-save-keys" || true
         kill "$PROCESS_PID" || true
+        wait_for_exit "$PROCESS_PID"
     elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
         echo "Dummy PID file found. No app process to kill."
     else
