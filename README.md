@@ -31,6 +31,8 @@ Currently, the app supports the following features:
 
 - **Sleep**: On devices without deep sleep, which includes every device running MinUI, clicking the power button pauses the game and turns the screen off, the way MinUI's own sleep does. Clicking the power button again turns the screen back on and resumes the game. A device left asleep for two minutes shuts down, unless it is charging.
 
+- **Lid**: On the Miyoo Flip, closing the lid sleeps the device the same way a click of the power button does, and opening it wakes the device and resumes the game. The lid is only watched on devices that have the Flip's lid sensor.
+
 - **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. The app is asked to quit first, and the device waits up to `POWERCONTROL_EXIT_TIMEOUT` seconds, 5 by default, for it to exit, so an app that saves when asked to quit, such as DraStic, can finish. **Warning**: An app that does not save when asked to quit, and has no save keys set as described under [Usage](#usage), will lose any progress made since the last save. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
 
 Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI. After waking, the game stays paused for at least a second, and up to five, while the system finishes restoring audio and the screen settings, and presses of the power button are ignored for three seconds.
@@ -49,6 +51,7 @@ The following changes are tested against stubbed device commands but still need 
 - Sleeping with the screen off, powering off after two minutes asleep, and resuming the rom on the next start, on each MinUI platform.
 - Apps such as DraStic keeping their audio after waking from deep sleep several times in quick succession.
 - Sending save keys with the 32-bit build of emit-key.
+- Sleeping when the lid closes and waking when it opens on the Miyoo Flip, under MinUI and NextUI.
 
 ## Usage
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -100,5 +102,130 @@ func TestCooldownAfterSuspend(t *testing.T) {
 	}
 	if got := cooldownAfterSuspend(now, true); !got.Equal(now) {
 		t.Errorf("while paused without sleep presses are ignored until %v, want them listened to at once", got)
+	}
+}
+
+func TestLidAction(t *testing.T) {
+	tests := []struct {
+		name      string
+		wasOpen   bool
+		isOpen    bool
+		suspended bool
+		want      bool
+	}{
+		{"closing the lid sleeps an awake device", true, false, false, true},
+		{"closing the lid leaves a paused device asleep", true, false, true, false},
+		{"opening the lid wakes a paused device", false, true, true, true},
+		{"opening the lid after deep sleep does nothing", false, true, false, false},
+		{"an open lid that stays open does nothing", true, true, false, false},
+		{"a closed lid that stays closed does nothing", false, false, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := lidAction(tt.wasOpen, tt.isOpen, tt.suspended); got != tt.want {
+				t.Errorf("lidAction(%v, %v, %v) = %v, want %v", tt.wasOpen, tt.isOpen, tt.suspended, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReadLidOpen(t *testing.T) {
+	dir := t.TempDir()
+
+	if _, ok := readLidOpen(filepath.Join(dir, "missing")); ok {
+		t.Error("a device without a lid sensor was read as having one")
+	}
+
+	path := filepath.Join(dir, "hallvalue")
+	for value, want := range map[string]bool{"1\n": true, "0\n": false, "1": true} {
+		if err := os.WriteFile(path, []byte(value), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		open, ok := readLidOpen(path)
+		if !ok || open != want {
+			t.Errorf("readLidOpen(%q) = %v, %v, want %v, true", value, open, ok, want)
+		}
+	}
+}
+
+func TestWatchLidReturnsWithoutASensor(t *testing.T) {
+	s := &sleeper{
+		run:       func() { t.Error("suspend ran on a device without a lid sensor") },
+		suspended: func() bool { return false },
+	}
+
+	done := make(chan struct{})
+	go func() {
+		watchLid(filepath.Join(t.TempDir(), "missing"), s)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("watchLid kept polling a lid sensor that does not exist")
+	}
+}
+
+func TestSleeperDropsRequestsWhileRunning(t *testing.T) {
+	runs := 0
+	release := make(chan struct{})
+	started := make(chan struct{})
+	s := &sleeper{
+		run: func() {
+			runs++
+			if runs == 1 {
+				close(started)
+				<-release
+			}
+		},
+		suspended: func() bool { return true },
+	}
+
+	go s.suspend()
+	<-started
+
+	if s.listening(time.Now()) {
+		t.Error("power key events are listened to while the suspend script runs")
+	}
+	if s.suspend() {
+		t.Error("a second suspend ran while the first was still running")
+	}
+
+	close(release)
+	deadline := time.Now().Add(time.Second)
+	for !s.listening(time.Now()) {
+		if time.Now().After(deadline) {
+			t.Fatal("power key events are still ignored after the suspend script finished")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if runs != 1 {
+		t.Errorf("the suspend script ran %d times, want 1", runs)
+	}
+}
+
+func TestSleeperIgnoresRequestsUntilTheDeviceHasWoken(t *testing.T) {
+	runs := 0
+	s := &sleeper{
+		run:       func() { runs++ },
+		suspended: func() bool { return false },
+	}
+
+	if !s.suspend() {
+		t.Fatal("the first suspend did not run")
+	}
+	if s.suspend() {
+		t.Error("a suspend ran while the device was still waking from deep sleep")
+	}
+	if s.listening(time.Now()) {
+		t.Error("power key events are listened to while the device is still waking")
+	}
+	if !s.listening(time.Now().Add(coolDownTime)) {
+		t.Error("power key events are still ignored once the cooldown is over")
+	}
+	if runs != 1 {
+		t.Errorf("the suspend script ran %d times, want 1", runs)
 	}
 }

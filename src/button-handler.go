@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/holoplot/go-evdev"
@@ -18,6 +20,9 @@ const (
 	// long enough for the drivers to finish waking before a press can start
 	// another suspend
 	coolDownTime = 3 * time.Second
+	// NextUI checks the lid once a frame; a quarter second is as quick to the
+	// eye and costs next to nothing
+	lidPollInterval = 250 * time.Millisecond
 )
 
 var (
@@ -27,6 +32,10 @@ var (
 	shutdownScript = filepath.Join(rootPath, "shutdown")
 	// present while the fallback suspend has the app paused
 	suspendActiveFile = "/tmp/powercontrol-suspend-active"
+	// the Miyoo Flip's hall sensor, 1 while the lid is open. MinUI and NextUI
+	// both move the system's own lid handler aside, so nothing else acts on it
+	// while a pak runs.
+	lidStateFile = "/sys/devices/platform/hall-mh248/hallvalue"
 )
 
 // cooldownAfterSuspend returns when presses are listened to again. Deep sleep
@@ -38,6 +47,104 @@ func cooldownAfterSuspend(now time.Time, pausedWithoutSleep bool) time.Time {
 		return now
 	}
 	return now.Add(coolDownTime)
+}
+
+// sleeper runs the suspend script for both the power key and the lid, one at a
+// time. Anything that asks while a run is under way is dropped rather than
+// queued, so a press made during a lid sleep cannot put the device straight
+// back to sleep once it wakes.
+type sleeper struct {
+	mu            sync.Mutex
+	cooldownUntil time.Time
+	run           func()
+	suspended     func() bool
+}
+
+// listening reports whether a power key event should be acted on now.
+func (s *sleeper) listening(now time.Time) bool {
+	if !s.mu.TryLock() {
+		return false
+	}
+	defer s.mu.Unlock()
+	return !now.Before(s.cooldownUntil)
+}
+
+// suspend runs the suspend script unless another run is under way or the
+// device is still waking, and reports whether it ran.
+func (s *sleeper) suspend() bool {
+	if !s.mu.TryLock() {
+		return false
+	}
+	defer s.mu.Unlock()
+
+	if time.Now().Before(s.cooldownUntil) {
+		return false
+	}
+
+	s.run()
+	s.cooldownUntil = cooldownAfterSuspend(time.Now(), s.suspended())
+	return true
+}
+
+func isSuspendActive() bool {
+	_, err := os.Stat(suspendActiveFile)
+	return err == nil
+}
+
+// lidAction reports whether a change in the lid runs the suspend script.
+// Closing it sleeps a device that is awake, and opening it wakes one the
+// fallback suspend has paused. Deep sleep needs nothing on opening, as the
+// system suspend script only returns once the lid is open.
+func lidAction(wasOpen, isOpen, suspended bool) bool {
+	if wasOpen && !isOpen {
+		return !suspended
+	}
+	if !wasOpen && isOpen {
+		return suspended
+	}
+	return false
+}
+
+// readLidOpen reports whether the lid is open, and false for ok when the
+// device has no lid sensor or it could not be read.
+func readLidOpen(path string) (open bool, ok bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, false
+	}
+	return strings.TrimSpace(string(data)) == "1", true
+}
+
+// watchLid suspends and resumes on the lid until the process exits. Only
+// changes count, so starting with the lid shut does not sleep, and a change
+// that could not be acted on is tried again on the next poll.
+func watchLid(path string, s *sleeper) {
+	wasOpen, ok := readLidOpen(path)
+	if !ok {
+		return
+	}
+	log.Printf("Watching the lid at %s\n", path)
+
+	for {
+		time.Sleep(lidPollInterval)
+
+		isOpen, ok := readLidOpen(path)
+		if !ok || isOpen == wasOpen {
+			continue
+		}
+
+		if lidAction(wasOpen, isOpen, s.suspended()) {
+			if isOpen {
+				log.Println("Lid opened, resuming...")
+			} else {
+				log.Println("Lid closed, suspending...")
+			}
+			if !s.suspend() {
+				continue
+			}
+		}
+		wasOpen = isOpen
+	}
 }
 
 // defaultPowerDevice is where each platform's power key is usually found.
@@ -105,9 +212,14 @@ func main() {
 	}
 	log.Printf("Listening on device: %s\n", dev.Path())
 
+	s := &sleeper{
+		run:       func() { runScript(suspendScript) },
+		suspended: isSuspendActive,
+	}
+	go watchLid(lidStateFile, s)
+
 	var pressTime time.Time
 	var holdTimer *time.Timer
-	var cooldownUntil time.Time
 
 	for {
 		event, err := dev.ReadOne()
@@ -116,7 +228,14 @@ func main() {
 			continue
 		}
 
-		if time.Now().Before(cooldownUntil) {
+		if !s.listening(time.Now()) {
+			// a press the lid's sleep cut short must not turn into a hold
+			// that shuts the device down once it wakes
+			if holdTimer != nil {
+				holdTimer.Stop()
+				holdTimer = nil
+			}
+			pressTime = time.Time{}
 			continue
 		}
 
@@ -150,9 +269,7 @@ func main() {
 			}
 			if stopped {
 				log.Println("Short press detected, suspending...")
-				runScript(suspendScript)
-				_, err := os.Stat(suspendActiveFile)
-				cooldownUntil = cooldownAfterSuspend(time.Now(), err == nil)
+				s.suspend()
 			}
 		}
 	}
