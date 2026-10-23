@@ -8,6 +8,10 @@ fi
 
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
+# overridable so the test suite can observe what the scripts write
+TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
+PROC_DIR="${POWERCONTROL_PROC_DIR:-/proc}"
+
 show_message() {
     message="$1"
     seconds="$2"
@@ -32,18 +36,18 @@ shutdown_system() {
     if [ "$IS_NEXT" = "yes" ]; then
         # NextUI's MinUI.pak/launch.sh polls /tmp/poweroff and calls poweroff_next
         # itself once the foreground process exits.
-        touch /tmp/poweroff
+        touch "$TMP_DIR/poweroff"
         killall -TERM nextui.elf 2>/dev/null || true
-        if [ -f /tmp/next ]; then
-            ACTIVE_PAK=$(cat /tmp/next | tr -d "'\"")
+        if [ -f "$TMP_DIR/next" ]; then
+            ACTIVE_PAK=$(cat "$TMP_DIR/next" | tr -d "'\"")
             if [ -n "$ACTIVE_PAK" ]; then
                 PAK_DIR=$(dirname "$ACTIVE_PAK")
                 # BusyBox has no pkill; walk /proc and match cmdline ourselves.
-                for proc in /proc/[0-9]*/cmdline; do
+                for proc in "$PROC_DIR"/[0-9]*/cmdline; do
                     cmdline=$(tr '\0' ' ' < "$proc" 2>/dev/null)
                     case "$cmdline" in
                         *"$PAK_DIR"*)
-                            pid=${proc#/proc/}; pid=${pid%/cmdline}
+                            pid=${proc#"$PROC_DIR"/}; pid=${pid%/cmdline}
                             kill -TERM "$pid" 2>/dev/null || true
                             ;;
                     esac
@@ -59,8 +63,8 @@ shutdown_system() {
 }
 
 main() {
-    if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
+    if [ -f "$TMP_DIR/powercontrol-emulator-pid" ]; then
+        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-emulator-pid")
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
@@ -69,7 +73,7 @@ main() {
         fi
 
         kill "$PROCESS_PID" || true
-    elif [ -f /tmp/powercontrol-dummy-pid ]; then
+    elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
         echo "Dummy PID file found. No emulator process to kill."
     else
         echo "Emulator PID file not found."
