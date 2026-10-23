@@ -3,6 +3,11 @@
 setup() {
   load test_helper
   setup_power_control
+  gate_sleep
+
+  # the sleep timer powers off through this
+  stub shutdown
+  mv "$STUB_DIR/shutdown" "$BIN_DIR/shutdown"
 }
 
 # a system suspend script that records whether the app was stopped while it ran
@@ -184,4 +189,106 @@ EOF
     /bin/sleep 0.05
   done
   grep -q "^wifi-restored" "$STUB_LOG"
+}
+
+# check_fallback_screen PLATFORM FILE OFF ON: the fallback writes OFF to FILE under /sys while
+# asleep and ON once woken
+check_fallback_screen() {
+  export PLATFORM="$1"
+  start_app
+  write_app_pid
+  mkdir -p "$(dirname "$POWERCONTROL_SYS_DIR/$2")"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$POWERCONTROL_SYS_DIR/$2")" = "$3" ]
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$POWERCONTROL_SYS_DIR/$2")" = "$4" ]
+}
+
+@test "suspend without a system script blanks the rg35xxplus screen" {
+  check_fallback_screen rg35xxplus class/graphics/fb0/blank 4 0
+}
+
+@test "suspend without a system script turns the my355 backlight off" {
+  check_fallback_screen my355 class/backlight/backlight/bl_power 4 0
+}
+
+@test "suspend without a system script turns the miyoomini backlight off" {
+  check_fallback_screen miyoomini class/gpio/gpio4/value 0 1
+  [ "$(cat "$POWERCONTROL_SYS_DIR/class/gpio/export")" = "4" ]
+  [ "$(cat "$POWERCONTROL_SYS_DIR/class/gpio/gpio4/direction")" = "out" ]
+}
+
+@test "suspend without a system script turns the h700 screen off and restores its brightness" {
+  check_fallback_screen h700 class/graphics/fb0/blank 1 0
+  grep -q "^set-brightness 0" "$STUB_LOG"
+  grep -q "^syncsettings.elf" "$STUB_LOG"
+}
+
+@test "suspend without a system script pauses keymon while asleep" {
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  grep -q "^killall -STOP keymon.elf" "$STUB_LOG"
+  ! grep -q "^killall -CONT keymon.elf" "$STUB_LOG"
+
+  run sh "$BIN_DIR/suspend"
+  grep -q "^killall -CONT keymon.elf" "$STUB_LOG"
+}
+
+@test "suspend without a system script powers off a device left asleep" {
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  ! grep -q "^shutdown" "$STUB_LOG"
+
+  open_gate
+  wait_for_log shutdown
+}
+
+@test "suspend without a system script does not power off a device that woke" {
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  run sh "$BIN_DIR/suspend"
+  open_gate
+
+  /bin/sleep 0.3
+  ! grep -q "^shutdown" "$STUB_LOG"
+}
+
+@test "suspend without a system script powers off once for the latest sleep only" {
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  run sh "$BIN_DIR/suspend"
+  run sh "$BIN_DIR/suspend"
+  open_gate
+
+  wait_for_log shutdown
+  /bin/sleep 0.3
+  [ "$(grep -c "^shutdown" "$STUB_LOG")" -eq 1 ]
+}
+
+@test "suspend without a system script stays asleep while the device charges" {
+  mkdir -p "$POWERCONTROL_SYS_DIR/class/power_supply/battery"
+  echo Charging >"$POWERCONTROL_SYS_DIR/class/power_supply/battery/status"
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  open_gate
+  /bin/sleep 0.3
+  ! grep -q "^shutdown" "$STUB_LOG"
+
+  echo Discharging >"$POWERCONTROL_SYS_DIR/class/power_supply/battery/status"
+  wait_for_log shutdown
 }

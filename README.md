@@ -29,6 +29,8 @@ Currently, the app supports the following features:
 
 - **Deep Sleep**: Deep sleep is supported on NextUI, as well a MinUI devices which have it enabled. Clicking the power button will immediately put the device into deep sleep. Clicking the power button again will wake the device up and resume the game. On NextUI, the game time tracker is paused while the device sleeps, so time asleep is not counted as play time.
 
+- **Sleep**: On devices without deep sleep, which includes every device running MinUI, clicking the power button pauses the game and turns the screen off, the way MinUI's own sleep does. Clicking the power button again turns the screen back on and resumes the game. A device left asleep for two minutes shuts down, unless it is charging.
+
 - **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on.
 
 Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.

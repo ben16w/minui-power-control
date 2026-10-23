@@ -77,6 +77,14 @@ main() {
             exit 1
         fi
 
+        # a paused app cannot act on the signal, and on NextUI the pak has to
+        # exit before the device powers off
+        if [ -f "$TMP_DIR/powercontrol-suspend-active" ]; then
+            rm -f "$TMP_DIR/powercontrol-suspend-active"
+            killall -CONT keymon.elf 2>/dev/null || true
+            kill -CONT "$PROCESS_PID" || true
+        fi
+
         kill "$PROCESS_PID" || true
     elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
         echo "Dummy PID file found. No app process to kill."

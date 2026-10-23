@@ -65,3 +65,17 @@ setup() {
   run sh "$BIN_DIR/shutdown"
   grep -q "^gametimectl.elf stop_all" "$STUB_LOG"
 }
+
+@test "shutdown resumes a paused app so it can act on the signal" {
+  start_app
+  write_app_pid
+  kill -STOP "$APP_PID"
+  touch "$POWERCONTROL_TMP_DIR/powercontrol-suspend-active"
+
+  run sh "$BIN_DIR/shutdown"
+  grep -q "^killall -CONT keymon.elf" "$STUB_LOG"
+  [ ! -f "$POWERCONTROL_TMP_DIR/powercontrol-suspend-active" ]
+
+  run wait "$APP_PID"
+  [ "$status" -eq 143 ]
+}

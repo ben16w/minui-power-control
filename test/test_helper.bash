@@ -42,6 +42,10 @@ setup_power_control() {
 }
 
 teardown() {
+  # a sleep timer still waiting on the gate sees the device awake and exits
+  rm -f "$POWERCONTROL_TMP_DIR/powercontrol-suspend-active"
+  touch "$BATS_TEST_TMPDIR/gate"
+
   # only ever real child pids: a kill of 0 would signal the whole test run
   for pid in ${APP_PID:-} ${OTHER_PID:-}; do
     [ "$pid" -gt 0 ] || continue
@@ -83,4 +87,24 @@ process_state() {
 # can assert the order commands ran in
 line_of() {
   grep -n "^$1" "$STUB_LOG" | head -n 1 | cut -d: -f1
+}
+
+# makes sleep block until open_gate, so a test decides when the timer that
+# powers off a sleeping device runs out
+gate_sleep() {
+  printf '#!/bin/sh\nwhile [ ! -f "%s" ]; do /bin/sleep 0.02; done\n' "$BATS_TEST_TMPDIR/gate" >"$STUB_DIR/sleep"
+  chmod +x "$STUB_DIR/sleep"
+}
+
+open_gate() {
+  touch "$BATS_TEST_TMPDIR/gate"
+}
+
+# waits up to two seconds for a stub log line starting with PATTERN
+wait_for_log() {
+  for _ in $(seq 1 100); do
+    grep -q "^$1" "$STUB_LOG" && return 0
+    /bin/sleep 0.02
+  done
+  return 1
 }
