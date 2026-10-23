@@ -8,6 +8,9 @@ fi
 
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
+# overridable so the test suite can observe what the scripts write
+TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
+
 SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
 
 suspend_system() {
@@ -50,22 +53,22 @@ fallback_suspend() {
         return 1
     fi
 
-    if [ ! -f /tmp/powercontrol-suspend-active ]; then
+    if [ ! -f "$TMP_DIR/powercontrol-suspend-active" ]; then
         echo "Pausing emulator process with PID: $PID"
         kill -STOP "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && set-brightness 0
-        touch /tmp/powercontrol-suspend-active
+        touch "$TMP_DIR/powercontrol-suspend-active"
     else
         echo "Resuming emulator process with PID: $PID"
         kill -CONT "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && syncsettings.elf
-        rm -f /tmp/powercontrol-suspend-active
+        rm -f "$TMP_DIR/powercontrol-suspend-active"
     fi
 }
 
 main() {
-    if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
+    if [ -f "$TMP_DIR/powercontrol-emulator-pid" ]; then
+        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-emulator-pid")
         echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
@@ -74,7 +77,7 @@ main() {
         fi
 
         suspend_system "$PROCESS_PID"
-    elif [ -f /tmp/powercontrol-dummy-pid ]; then
+    elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
         echo "Dummy PID file found. No emulator process to suspend."
         suspend_system
     else
