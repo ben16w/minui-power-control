@@ -44,6 +44,7 @@ Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, 
 The following changes are tested against stubbed device commands but still need to be confirmed on a device:
 
 - Deep sleep and the screen turning off on the Anbernic H700 devices running NextUI.
+- The screen turning off during deep sleep on the Miyoo Flip running NextUI.
 - Finding the power button on the `rg35xxplus` devices running MinUI, where the input device that reports it is not known.
 - Sleeping with the screen off, powering off after two minutes asleep, and resuming the rom on the next start, on each MinUI platform.
 - Apps such as DraStic keeping their audio after waking from deep sleep several times in quick succession.

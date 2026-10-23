@@ -23,20 +23,31 @@ CHARGING_RECHECK=60
 SETTLE_MIN=1
 SETTLE_MAX=5
 
-# NextUI turns the h700 panel off itself before calling its suspend script,
-# which leaves it to the caller, so the screen would otherwise stay lit
+# NextUI turns the h700 and my355 panels off itself before calling its suspend
+# script, which leaves it to the caller, so the screen would otherwise stay lit.
+# Powering the my355 backlight down leaves its brightness where it was.
 screen_off() {
-    if [ "$PLATFORM" = "h700" ]; then
-        set-brightness 0
-        echo 1 > "$SYS_DIR/class/graphics/fb0/blank"
-    fi
+    case "$PLATFORM" in
+        h700)
+            set-brightness 0
+            echo 1 > "$SYS_DIR/class/graphics/fb0/blank"
+            ;;
+        my355)
+            echo 4 > "$SYS_DIR/class/backlight/backlight/bl_power"
+            ;;
+    esac
 }
 
 screen_on() {
-    if [ "$PLATFORM" = "h700" ]; then
-        echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
-        syncsettings.elf
-    fi
+    case "$PLATFORM" in
+        h700)
+            echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
+            syncsettings.elf
+            ;;
+        my355)
+            echo 0 > "$SYS_DIR/class/backlight/backlight/bl_power"
+            ;;
+    esac
 }
 
 # NextUI's game time tracker keeps counting until it is told to stop, so the
@@ -127,13 +138,10 @@ fallback_screen_off() {
         rg35xxplus)
             echo 4 > "$SYS_DIR/class/graphics/fb0/blank"
             ;;
-        my355)
-            echo 4 > "$SYS_DIR/class/backlight/backlight/bl_power"
-            ;;
         tg5040)
             set-brightness 0
             ;;
-        h700)
+        h700 | my355)
             screen_off
             ;;
     esac
@@ -147,13 +155,10 @@ fallback_screen_on() {
         rg35xxplus)
             echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
             ;;
-        my355)
-            echo 0 > "$SYS_DIR/class/backlight/backlight/bl_power"
-            ;;
         tg5040)
             syncsettings.elf
             ;;
-        h700)
+        h700 | my355)
             screen_on
             ;;
     esac

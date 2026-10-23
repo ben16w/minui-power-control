@@ -83,6 +83,25 @@ EOF
   [ "$(sed -n 3p "$STUB_LOG")" = "syncsettings.elf " ]
 }
 
+@test "suspend on my355 turns the backlight off around the system suspend script" {
+  export PLATFORM=my355
+  bl_power="$POWERCONTROL_SYS_DIR/class/backlight/backlight/bl_power"
+  mkdir -p "$(dirname "$bl_power")"
+  start_app
+  write_app_pid
+  cat >"$SYSTEM_PATH/bin/suspend" <<EOF
+#!/bin/sh
+echo "system-suspend bl_power=\$(cat "$bl_power")" >>"\$STUB_LOG"
+EOF
+  chmod +x "$SYSTEM_PATH/bin/suspend"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$bl_power")" = "0" ]
+  grep -q "^system-suspend bl_power=4" "$STUB_LOG"
+  ! grep -q "^set-brightness" "$STUB_LOG"
+}
+
 @test "suspend leaves the screen alone on platforms whose suspend script handles it" {
   start_app
   write_app_pid
