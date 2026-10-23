@@ -41,12 +41,26 @@ setup() {
   [[ "$output" == *"syncsettings.elf binary not found."* ]]
 }
 
-@test "launch refuses to start without minui-presenter" {
-  rm -f "$STUB_DIR/minui-presenter" "$BIN_DIR/$PLATFORM/minui-presenter"
+# the presenter comes from the pak's PATH, and a pak without one still gets
+# sleep and shutdown
+@test "launch runs without minui-presenter and says messages are only logged" {
+  rm -f "$STUB_DIR/minui-presenter"
+  start_app 1
+  stub pgrep "echo $APP_PID"
 
-  run sh "$BIN_DIR/launch"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"minui-presenter binary not found."* ]]
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"minui-presenter not found on PATH, messages will only be logged."* ]]
+  grep -q "^button-handler" "$STUB_LOG"
+}
+
+@test "launch uses the minui-presenter on the pak's PATH" {
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"minui-presenter not found"* ]]
 }
 
 @test "launch gives up when the app never starts" {

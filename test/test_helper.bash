@@ -32,6 +32,7 @@ setup_power_control() {
   export SHARED_USERDATA_PATH="$SDCARD_PATH/.userdata/shared"
   unset IS_NEXT HOOK_ROM_PATH
 
+  # minui-presenter stands in for the one the pak puts on PATH
   for name in minui-presenter killall poweroff syncsettings.elf set-brightness; do
     stub "$name"
   done
@@ -65,7 +66,7 @@ stub() {
 # bin/launch checks for these beside itself, where a release build puts them
 install_release_stubs() {
   mkdir -p "$BIN_DIR/$PLATFORM" "$BIN_DIR/$architecture"
-  cp "$STUB_DIR/minui-presenter" "$STUB_DIR/set-brightness" "$BIN_DIR/$PLATFORM/"
+  cp "$STUB_DIR/set-brightness" "$BIN_DIR/$PLATFORM/"
   stub button-handler 'exec /bin/sleep 30'
   mv "$STUB_DIR/button-handler" "$BIN_DIR/$architecture/button-handler"
 }

@@ -33,6 +33,18 @@ EOF
   [ "$status" -eq 143 ]
 }
 
+@test "shutdown without minui-presenter logs the message and still powers off" {
+  rm -f "$STUB_DIR/minui-presenter"
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/shutdown"
+  [[ "$output" == *"Powering off"* ]]
+  ! grep -q "^minui-presenter" "$STUB_LOG"
+  ! grep -q "^killall minui-presenter" "$STUB_LOG"
+  grep -q "^poweroff" "$STUB_LOG"
+}
+
 @test "shutdown without an app still powers off" {
   touch "$POWERCONTROL_TMP_DIR/powercontrol-dummy-pid"
 

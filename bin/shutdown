@@ -20,8 +20,14 @@ show_message() {
         seconds="forever"
     fi
 
-    killall minui-presenter >/dev/null 2>&1 || true
     echo "$message" 1>&2
+
+    # the pak supplies the presenter, and one that does not is only logged to
+    if ! command -v minui-presenter >/dev/null 2>&1; then
+        return 0
+    fi
+
+    killall minui-presenter >/dev/null 2>&1 || true
     if [ "$seconds" = "forever" ]; then
         minui-presenter --message "$message" --timeout -1 &
     else

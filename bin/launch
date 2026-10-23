@@ -68,9 +68,10 @@ main() {
     # Pak launchers normally export SYSTEM_PATH; default it for standalone runs.
     export SYSTEM_PATH="${SYSTEM_PATH:-/mnt/SDCARD/.system/$PLATFORM}"
 
+    # the pak brings the presenter built for its platform and OS, if it wants
+    # the messages shown at all
     if ! command -v minui-presenter >/dev/null 2>&1; then
-        echo "minui-presenter binary not found."
-        exit 1
+        echo "minui-presenter not found on PATH, messages will only be logged."
     fi
 
     if ! command -v button-handler >/dev/null 2>&1; then
@@ -105,7 +106,6 @@ main() {
         chmod +x "$BIN_DIR/$PLATFORM/set-brightness"
     fi
 
-    chmod +x "$BIN_DIR/$PLATFORM/minui-presenter"
     chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"

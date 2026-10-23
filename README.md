@@ -58,6 +58,8 @@ minui-power-control <app-binary> &
 
 Before starting `minui-power-control`, make sure the app is already running. Replace `<app-binary>` with the actual name of the app’s binary, such as an emulator. `minui-power-control` will run in the background, watching for power button events and carrying out the actions. Once the app it watches closes, `minui-power-control` will automatically exit as well. To make things more convenient and reliable, it’s best to start it in the pak’s `launch.sh` script, placing it before the command that starts the app. This makes sure it launches alongside the app, removing the need to start it manually.
 
+`minui-power-control` shows its messages, such as "Powering off", with [minui-presenter](https://github.com/josegonzalez/minui-presenter), but does not bundle it, since the right build depends on the platform and on whether MinUI or NextUI is running. A pak that wants the messages on screen puts its own `minui-presenter` on `PATH` before starting `minui-power-control`. Without one, the messages are only logged.
+
 The path of the rom the app is playing can be passed as a second argument:
 
 ```bash
