@@ -8,7 +8,7 @@ import (
 	"unsafe"
 )
 
-// Platform identifier: set to one of "tg5040", "miyoomini", or "rg35xxplus" at compile time
+// Platform identifier: set to one of "tg5040", "miyoomini", "rg35xxplus", or "h700" at compile time
 var (
 	platformName string
 )
@@ -26,7 +26,8 @@ func setBrightness(value int, platformName string) error {
 			raw = value * 10
 		}
 		applybrightnessDevice(raw)
-	} else if platformName == "rg35xxplus" {
+	} else if platformName == "rg35xxplus" || platformName == "h700" {
+		// h700 is the same Anbernic hardware under NextUI
 		mapRg35xxplus := [11]int{0, 4, 6, 10, 16, 32, 48, 64, 96, 160, 255}
 		raw = mapRg35xxplus[value]
 		applyBrightnessIoctl(raw)
@@ -91,8 +92,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if platformName != "tg5040" && platformName != "miyoomini" && platformName != "rg35xxplus" {
-		fmt.Println("Please set platformName to one of 'tg5040', 'miyoomini', or 'rg35xxplus'")
+	if platformName != "tg5040" && platformName != "miyoomini" && platformName != "rg35xxplus" && platformName != "h700" {
+		fmt.Println("Please set platformName to one of 'tg5040', 'miyoomini', 'rg35xxplus', or 'h700'")
 		os.Exit(1)
 	}
 
