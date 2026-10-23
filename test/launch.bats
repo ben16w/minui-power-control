@@ -121,3 +121,11 @@ record_rom_path() {
   [ "$status" -eq 0 ]
   [ ! -f "$POWERCONTROL_TMP_DIR/resume_slot.txt" ]
 }
+
+@test "launch refuses to start without the save keys script" {
+  rm -f "$BIN_DIR/send-save-keys"
+
+  run sh "$BIN_DIR/launch"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"send-save-keys script not found."* ]]
+}

@@ -55,6 +55,16 @@ minui-power-control <app-binary> "$ROM_PATH" &
 
 On a device without deep sleep, a device left asleep long enough powers off, and with the rom path the rom is resumed when the device next starts, the same way MinUI and NextUI resume their own games. The rom is started again from the beginning unless the app saves and restores its own state. On NextUI, the rom the pak was launched for is used when no path is passed.
 
+### Saving before sleeping
+
+`minui-power-control` cannot save on behalf of the app, but it can ask the app to save by pressing the keys the app saves on. Set `POWERCONTROL_SAVE_KEYS` to those keys before starting it, in the format [emit-key](https://github.com/josegonzalez/emit-key) takes, such as `f5` or `f1,f5:500000`:
+
+```bash
+POWERCONTROL_SAVE_KEYS="f5" minui-power-control <app-binary> &
+```
+
+The keys are pressed before the device goes to sleep, while the app is still running, and the device waits `POWERCONTROL_SAVE_DELAY` seconds, 2 by default, for the save to finish. emit-key only presses keyboard keys, from `F1` to `F12`, `a` to `z`, `0` to `9` and `Esc`, so the app has to have one of them bound to saving. When `POWERCONTROL_SAVE_KEYS` is not set, no keys are pressed.
+
 Alternatively, it is possible to run `minui-power-control` without specifying an app binary:
 
 ```bash

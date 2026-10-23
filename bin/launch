@@ -88,6 +88,11 @@ main() {
         exit 1
     fi
 
+    if [ ! -f "$BIN_DIR/send-save-keys" ]; then
+        echo "send-save-keys script not found."
+        exit 1
+    fi
+
     if [ "$PLATFORM" = "tg5040" ] || [ "$PLATFORM" = "h700" ]; then
         if ! command -v syncsettings.elf >/dev/null 2>&1; then
             echo "syncsettings.elf binary not found."
@@ -104,6 +109,7 @@ main() {
     chmod +x "$BIN_DIR/$architecture/button-handler"
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
+    chmod +x "$BIN_DIR/send-save-keys"
 
     # NextUI names the rom it launched the pak for, so a pak that passes none
     # can still resume. MinUI and NextUI both hand a resumed rom a save slot

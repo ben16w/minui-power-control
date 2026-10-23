@@ -351,3 +351,72 @@ check_fallback_screen() {
   [ "$status" -eq 0 ]
   [ ! -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt" ]
 }
+
+# an emit-key that records whether the app could still act on the keys
+stub_emit_key() {
+  stub emit-key "echo \"emit-key-state \$(ps -o stat= -p $APP_PID | tr -d ' ')\" >>\"\$STUB_LOG\"; exit ${1:-0}"
+}
+
+@test "suspend sends the save keys while the app is still running" {
+  export POWERCONTROL_SAVE_KEYS="f5" POWERCONTROL_SAVE_DELAY=0
+  start_app
+  write_app_pid
+  stub_emit_key
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  grep -q "^emit-key -k f5$" "$STUB_LOG"
+  [[ "$(grep "^emit-key-state" "$STUB_LOG")" != "emit-key-state T"* ]]
+  [ "$(line_of "emit-key -k f5")" -lt "$(line_of "system-suspend")" ]
+}
+
+@test "suspend waits for the app to save before pausing it" {
+  export POWERCONTROL_SAVE_KEYS="f5"
+  start_app
+  write_app_pid
+  stub_emit_key
+  stub sleep
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(line_of "sleep 2")" -lt "$(line_of "system-suspend")" ]
+}
+
+@test "suspend sends no keys unless the pak names them" {
+  start_app
+  write_app_pid
+  stub_emit_key
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  ! grep -q "^emit-key" "$STUB_LOG"
+}
+
+@test "suspend still sleeps when the save keys cannot be sent" {
+  export POWERCONTROL_SAVE_KEYS="f5" POWERCONTROL_SAVE_DELAY=0
+  start_app
+  write_app_pid
+  stub_emit_key 1
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"emit-key could not send the save keys."* ]]
+  grep -q "^system-suspend" "$STUB_LOG"
+}
+
+@test "suspend without a system script sends the save keys only when going to sleep" {
+  export POWERCONTROL_SAVE_KEYS="f5" POWERCONTROL_SAVE_DELAY=0
+  start_app
+  write_app_pid
+  stub_emit_key
+
+  run sh "$BIN_DIR/suspend"
+  [ "$(grep -c "^emit-key -k" "$STUB_LOG")" -eq 1 ]
+
+  run sh "$BIN_DIR/suspend"
+  [ "$(grep -c "^emit-key -k" "$STUB_LOG")" -eq 1 ]
+}

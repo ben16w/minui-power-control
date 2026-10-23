@@ -63,6 +63,7 @@ suspend_system() {
     fi
     chmod +x "$SCRIPT"
 
+    "$BIN_DIR/send-save-keys" || true
     pause_game_time
 
     if [ -n "$PID" ]; then
@@ -212,6 +213,7 @@ fallback_suspend() {
 
     if [ ! -f "$TMP_DIR/powercontrol-suspend-active" ]; then
         echo "Pausing app process with PID: $PID"
+        "$BIN_DIR/send-save-keys" || true
         pause_game_time
         kill -STOP "$PID" || true
         killall -STOP keymon.elf 2>/dev/null || true

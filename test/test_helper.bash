@@ -12,7 +12,7 @@ setup_power_control() {
   # runs its own copy with the release binaries stubbed out where they would be
   BIN_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$BIN_DIR"
-  cp "$REPO_ROOT/bin/launch" "$REPO_ROOT/bin/suspend" "$REPO_ROOT/bin/shutdown" "$BIN_DIR/"
+  cp "$REPO_ROOT/bin/launch" "$REPO_ROOT/bin/suspend" "$REPO_ROOT/bin/shutdown" "$REPO_ROOT/bin/send-save-keys" "$BIN_DIR/"
 
   STUB_DIR="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUB_DIR"
