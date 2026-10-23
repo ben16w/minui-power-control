@@ -159,3 +159,29 @@ EOF
   [ "$status" -eq 0 ]
   ! grep -q "gametimectl.elf" "$STUB_LOG"
 }
+
+# NextUI's suspend scripts run under set -u and restore Wi-Fi from a background
+# job after waking, which only works if SYSTEM_PATH reaches them and that job is
+# not killed when the script returns
+@test "suspend lets the system suspend script restore Wi-Fi in the background" {
+  start_app
+  write_app_pid
+  cat >"$SYSTEM_PATH/bin/suspend" <<EOF
+#!/bin/sh
+set -u
+echo "system-suspend \$SYSTEM_PATH" >>"\$STUB_LOG"
+(/bin/sleep 0.2; echo "wifi-restored" >>"\$STUB_LOG") 3>&- &
+EOF
+  chmod +x "$SYSTEM_PATH/bin/suspend"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  grep -q "^system-suspend $SYSTEM_PATH$" "$STUB_LOG"
+  ! grep -q "^wifi-restored" "$STUB_LOG"
+
+  for _ in $(seq 1 40); do
+    grep -q "^wifi-restored" "$STUB_LOG" && break
+    /bin/sleep 0.05
+  done
+  grep -q "^wifi-restored" "$STUB_LOG"
+}
