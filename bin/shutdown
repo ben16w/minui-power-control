@@ -8,6 +8,10 @@ fi
 
 export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
+# overridable so the test suite can observe what the scripts write
+TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
+PROC_DIR="${POWERCONTROL_PROC_DIR:-/proc}"
+
 show_message() {
     message="$1"
     seconds="$2"
@@ -27,23 +31,28 @@ show_message() {
 
 shutdown_system() {
     echo "Shutting down system..."
+    # NextUI only closes an open play session on its next start, so the session
+    # is closed here, when play actually ends
+    if command -v gametimectl.elf >/dev/null 2>&1; then
+        gametimectl.elf stop_all
+    fi
     show_message "Powering off" forever
     sync
     if [ "$IS_NEXT" = "yes" ]; then
         # NextUI's MinUI.pak/launch.sh polls /tmp/poweroff and calls poweroff_next
         # itself once the foreground process exits.
-        touch /tmp/poweroff
+        touch "$TMP_DIR/poweroff"
         killall -TERM nextui.elf 2>/dev/null || true
-        if [ -f /tmp/next ]; then
-            ACTIVE_PAK=$(cat /tmp/next | tr -d "'\"")
+        if [ -f "$TMP_DIR/next" ]; then
+            ACTIVE_PAK=$(cat "$TMP_DIR/next" | tr -d "'\"")
             if [ -n "$ACTIVE_PAK" ]; then
                 PAK_DIR=$(dirname "$ACTIVE_PAK")
                 # BusyBox has no pkill; walk /proc and match cmdline ourselves.
-                for proc in /proc/[0-9]*/cmdline; do
+                for proc in "$PROC_DIR"/[0-9]*/cmdline; do
                     cmdline=$(tr '\0' ' ' < "$proc" 2>/dev/null)
                     case "$cmdline" in
                         *"$PAK_DIR"*)
-                            pid=${proc#/proc/}; pid=${pid%/cmdline}
+                            pid=${proc#"$PROC_DIR"/}; pid=${pid%/cmdline}
                             kill -TERM "$pid" 2>/dev/null || true
                             ;;
                     esac
@@ -58,21 +67,50 @@ shutdown_system() {
     done
 }
 
+# Apps such as DraStic save when asked to quit, which takes longer than the
+# signal does to arrive, so the power stays on until the app has exited or the
+# timeout runs out
+wait_for_exit() {
+    PID="$1"
+    exit_timeout="${POWERCONTROL_EXIT_TIMEOUT:-5}"
+
+    waited=0
+    while kill -0 "$PID" 2>/dev/null; do
+        if [ "$waited" -ge "$exit_timeout" ]; then
+            echo "App process $PID did not exit within ${exit_timeout}s, shutting down anyway."
+            return
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    echo "App process $PID exited."
+}
+
 main() {
-    if [ -f /tmp/powercontrol-emulator-pid ]; then
-        PROCESS_PID=$(cat /tmp/powercontrol-emulator-pid)
-        echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
+    if [ -f "$TMP_DIR/powercontrol-app-pid" ]; then
+        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-app-pid")
+        echo "App PID file found. Killing the app process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
-            echo "Emulator process $PROCESS_PID not found."
+            echo "App process $PROCESS_PID not found."
             exit 1
         fi
 
+        # a paused app cannot act on the signal, and on NextUI the pak has to
+        # exit before the device powers off
+        if [ -f "$TMP_DIR/powercontrol-suspend-active" ]; then
+            rm -f "$TMP_DIR/powercontrol-suspend-active"
+            killall -CONT keymon.elf 2>/dev/null || true
+            kill -CONT "$PROCESS_PID" || true
+        fi
+
+        "$BIN_DIR/send-save-keys" || true
         kill "$PROCESS_PID" || true
-    elif [ -f /tmp/powercontrol-dummy-pid ]; then
-        echo "Dummy PID file found. No emulator process to kill."
+        wait_for_exit "$PROCESS_PID"
+    elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
+        echo "Dummy PID file found. No app process to kill."
     else
-        echo "Emulator PID file not found."
+        echo "App PID file not found."
         exit 1
     fi
 
