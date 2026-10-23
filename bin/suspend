@@ -30,6 +30,21 @@ screen_on() {
     fi
 }
 
+# NextUI's game time tracker keeps counting until it is told to stop, so the
+# time spent asleep would otherwise be added to the game's play time. MinUI has
+# no tracker.
+pause_game_time() {
+    if command -v gametimectl.elf >/dev/null 2>&1; then
+        gametimectl.elf stop_all
+    fi
+}
+
+resume_game_time() {
+    if command -v gametimectl.elf >/dev/null 2>&1; then
+        gametimectl.elf resume
+    fi
+}
+
 suspend_system() {
     SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
     PID="$1"
@@ -42,6 +57,8 @@ suspend_system() {
         return
     fi
     chmod +x "$SCRIPT"
+
+    pause_game_time
 
     if [ -n "$PID" ]; then
         echo "Suspending app process with PID: $PID"
@@ -61,6 +78,8 @@ suspend_system() {
         set-brightness 2
         syncsettings.elf
     fi
+
+    resume_game_time
 }
 
 fallback_suspend() {
@@ -74,6 +93,7 @@ fallback_suspend() {
 
     if [ ! -f "$TMP_DIR/powercontrol-suspend-active" ]; then
         echo "Pausing app process with PID: $PID"
+        pause_game_time
         kill -STOP "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && set-brightness 0
         touch "$TMP_DIR/powercontrol-suspend-active"
@@ -82,6 +102,7 @@ fallback_suspend() {
         kill -CONT "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && syncsettings.elf
         rm -f "$TMP_DIR/powercontrol-suspend-active"
+        resume_game_time
     fi
 }
 

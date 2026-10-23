@@ -78,3 +78,9 @@ write_app_pid() {
 process_state() {
   ps -o stat= -p "$1" | tr -d ' '
 }
+
+# prints the number of the first stub log line starting with PATTERN, so tests
+# can assert the order commands ran in
+line_of() {
+  grep -n "^$1" "$STUB_LOG" | head -n 1 | cut -d: -f1
+}

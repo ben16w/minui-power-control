@@ -122,3 +122,40 @@ EOF
   [ "$status" -eq 1 ]
   [[ "$output" == *"No PID provided for fallback suspend."* ]]
 }
+
+@test "suspend pauses the NextUI game time tracker while asleep" {
+  stub gametimectl.elf
+  start_app
+  write_app_pid
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(line_of "gametimectl.elf stop_all")" -lt "$(line_of "system-suspend")" ]
+  [ "$(tail -n 1 "$STUB_LOG")" = "gametimectl.elf resume" ]
+}
+
+@test "suspend without a system script pauses the game time tracker until the next press" {
+  stub gametimectl.elf
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  grep -q "^gametimectl.elf stop_all" "$STUB_LOG"
+  ! grep -q "^gametimectl.elf resume" "$STUB_LOG"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(tail -n 1 "$STUB_LOG")" = "gametimectl.elf resume" ]
+}
+
+@test "suspend works without a game time tracker" {
+  start_app
+  write_app_pid
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  ! grep -q "gametimectl.elf" "$STUB_LOG"
+}

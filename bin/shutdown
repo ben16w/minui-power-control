@@ -31,6 +31,11 @@ show_message() {
 
 shutdown_system() {
     echo "Shutting down system..."
+    # NextUI only closes an open play session on its next start, so the session
+    # is closed here, when play actually ends
+    if command -v gametimectl.elf >/dev/null 2>&1; then
+        gametimectl.elf stop_all
+    fi
     show_message "Powering off" forever
     sync
     if [ "$IS_NEXT" = "yes" ]; then
