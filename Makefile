@@ -2,10 +2,17 @@ TARGET = minui-power-control
 TAG ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "")
 
 ARCHITECTURES := arm arm64
-PLATFORMS := tg5040 tg5050 my355 miyoomini rg35xxplus
+PLATFORMS := tg5040 tg5050 my355 miyoomini rg35xxplus h700
+SET_BRIGHTNESS_PLATFORMS := tg5040 h700
 
-MINUI_PRESENTER_VERSION := 0.12.0
+MINUI_PRESENTER_VERSION := 0.13.0
 MAKESELF_VERSION := 2.5.0
+
+# minui-presenter asset names stopped matching platform names in 0.13.0: h700
+# and tg5050 are published only as NextUI builds. A platform with no entry here
+# uses its own name.
+MINUI_PRESENTER_ASSET_h700 := h700-nextui
+MINUI_PRESENTER_ASSET_tg5050 := tg5050-nextui
 
 clean:
 	rm -f bin/*/button-handler
@@ -13,14 +20,14 @@ clean:
 	rm -f bin/*/set-brightness
 	find bin -type d -empty -delete
 
-build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) bin/tg5040/set-brightness $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
+build: $(foreach platform,$(PLATFORMS),bin/$(platform)/minui-presenter) $(foreach platform,$(SET_BRIGHTNESS_PLATFORMS),bin/$(platform)/set-brightness) $(foreach arch,$(ARCHITECTURES),bin/$(arch)/button-handler) makeself
 	@echo "Building for $(ARCHITECTURES)"
 	@echo "Building for $(PLATFORMS)"
 	@echo "Build complete"
 
 bin/%/minui-presenter:
 	mkdir -p bin/$*
-	curl -f -o bin/$*/minui-presenter -sSL https://github.com/josegonzalez/minui-presenter/releases/download/$(MINUI_PRESENTER_VERSION)/minui-presenter-$*
+	curl -f -o bin/$*/minui-presenter -sSL https://github.com/josegonzalez/minui-presenter/releases/download/$(MINUI_PRESENTER_VERSION)/minui-presenter-$(or $(MINUI_PRESENTER_ASSET_$*),$*)
 	chmod +x bin/$*/minui-presenter
 
 bin/%/button-handler:
@@ -28,14 +35,16 @@ bin/%/button-handler:
 	CGO_ENABLED=0 GOOS=linux GOARCH="$*" go build -o bin/$*/button-handler -ldflags="-s -w" -trimpath ./src/button-handler.go
 	chmod +x bin/$*/button-handler
 
-bin/tg5040/set-brightness:
-	mkdir -p bin/tg5040
-	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/tg5040/set-brightness -ldflags="-s -w -X main.platformName=tg5040" -trimpath ./src/set-brightness.go
-	chmod +x bin/tg5040/set-brightness
+# every platform with set-brightness runs a 64-bit userland
+bin/%/set-brightness:
+	mkdir -p bin/$*
+	CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o bin/$*/set-brightness -ldflags="-s -w -X main.platformName=$*" -trimpath ./src/set-brightness.go
+	chmod +x bin/$*/set-brightness
 
 # a test folder exists, so without this make would call the target up to date
 .PHONY: test
 test:
+	go test ./src/button-handler.go ./src/button-handler_test.go
 	bats test
 
 makeself:
