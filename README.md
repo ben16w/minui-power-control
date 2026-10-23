@@ -39,6 +39,16 @@ Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, 
 
 - When resuming from deep sleep, if the brightness is set to 0, the screen will not turn on. This can be fixed by changing the brightness.
 
+### Future Plans
+
+The following changes are tested against stubbed device commands but still need to be confirmed on a device:
+
+- Deep sleep and the screen turning off on the Anbernic H700 devices running NextUI.
+- Finding the power button on the `rg35xxplus` devices running MinUI, where the input device that reports it is not known.
+- Sleeping with the screen off, powering off after two minutes asleep, and resuming the rom on the next start, on each MinUI platform.
+- Apps such as DraStic keeping their audio after waking from deep sleep several times in quick succession.
+- Sending save keys with the 32-bit build of emit-key.
+
 ## Usage
 
 ```bash
