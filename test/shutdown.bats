@@ -11,7 +11,7 @@ setup() {
 @test "shutdown needs a pid file" {
   run sh "$BIN_DIR/shutdown"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Emulator PID file not found."* ]]
+  [[ "$output" == *"App PID file not found."* ]]
 }
 
 @test "shutdown on MinUI ends the app and powers off" {
@@ -30,7 +30,7 @@ setup() {
   touch "$POWERCONTROL_TMP_DIR/powercontrol-dummy-pid"
 
   run sh "$BIN_DIR/shutdown"
-  [[ "$output" == *"No emulator process to kill."* ]]
+  [[ "$output" == *"No app process to kill."* ]]
   grep -q "^poweroff" "$STUB_LOG"
 }
 

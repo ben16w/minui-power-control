@@ -63,20 +63,20 @@ shutdown_system() {
 }
 
 main() {
-    if [ -f "$TMP_DIR/powercontrol-emulator-pid" ]; then
-        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-emulator-pid")
-        echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
+    if [ -f "$TMP_DIR/powercontrol-app-pid" ]; then
+        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-app-pid")
+        echo "App PID file found. Killing the app process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
-            echo "Emulator process $PROCESS_PID not found."
+            echo "App process $PROCESS_PID not found."
             exit 1
         fi
 
         kill "$PROCESS_PID" || true
     elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
-        echo "Dummy PID file found. No emulator process to kill."
+        echo "Dummy PID file found. No app process to kill."
     else
-        echo "Emulator PID file not found."
+        echo "App PID file not found."
         exit 1
     fi
 

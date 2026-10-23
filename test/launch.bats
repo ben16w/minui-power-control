@@ -54,7 +54,7 @@ setup() {
 
   run sh "$BIN_DIR/launch" missing-app
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Emulator process missing-app not found."* ]]
+  [[ "$output" == *"App process missing-app not found."* ]]
   ! grep -q "button-handler" "$STUB_LOG"
 }
 
@@ -64,9 +64,9 @@ setup() {
 
   run sh "$BIN_DIR/launch" sleep
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Emulator PID: $APP_PID"* ]]
+  [[ "$output" == *"App PID: $APP_PID"* ]]
   grep -q "^button-handler" "$STUB_LOG"
-  [ ! -f "$POWERCONTROL_TMP_DIR/powercontrol-emulator-pid" ]
+  [ ! -f "$POWERCONTROL_TMP_DIR/powercontrol-app-pid" ]
 }
 
 @test "launch without an app runs until the dummy pid file is removed" {

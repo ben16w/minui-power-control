@@ -23,7 +23,7 @@ EOF
 @test "suspend needs a pid file" {
   run sh "$BIN_DIR/suspend"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Emulator PID file not found."* ]]
+  [[ "$output" == *"App PID file not found."* ]]
 }
 
 @test "suspend refuses a pid that is no longer running" {
@@ -34,7 +34,7 @@ EOF
 
   run sh "$BIN_DIR/suspend"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Emulator process $APP_PID not found."* ]]
+  [[ "$output" == *"App process $APP_PID not found."* ]]
 }
 
 @test "suspend stops the app while the system suspend script runs" {
