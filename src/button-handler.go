@@ -15,7 +15,9 @@ const (
 	powerKeyCode    = 116 // KEY_POWER
 	powerKeyCodeAlt = 102 // some MY355 stacks expose power as 102
 	shortPressMax   = 2 * time.Second
-	coolDownTime    = 1 * time.Second
+	// long enough for the drivers to finish waking before a press can start
+	// another suspend
+	coolDownTime = 3 * time.Second
 )
 
 var (
@@ -23,7 +25,20 @@ var (
 	rootPath, _    = filepath.Abs(filepath.Dir(filepath.Dir(binPath)))
 	suspendScript  = filepath.Join(rootPath, "suspend")
 	shutdownScript = filepath.Join(rootPath, "shutdown")
+	// present while the fallback suspend has the app paused
+	suspendActiveFile = "/tmp/powercontrol-suspend-active"
 )
+
+// cooldownAfterSuspend returns when presses are listened to again. Deep sleep
+// returns only once the device has woken, and a press soon after can catch the
+// drivers still waking. The fallback suspend returns straight away, and the
+// next press is the one that wakes the device, so it must not be ignored.
+func cooldownAfterSuspend(now time.Time, pausedWithoutSleep bool) time.Time {
+	if pausedWithoutSleep {
+		return now
+	}
+	return now.Add(coolDownTime)
+}
 
 // defaultPowerDevice is where each platform's power key is usually found.
 func defaultPowerDevice(platform string) string {
@@ -136,7 +151,8 @@ func main() {
 			if stopped {
 				log.Println("Short press detected, suspending...")
 				runScript(suspendScript)
-				cooldownUntil = time.Now().Add(coolDownTime)
+				_, err := os.Stat(suspendActiveFile)
+				cooldownUntil = cooldownAfterSuspend(time.Now(), err == nil)
 			}
 		}
 	}

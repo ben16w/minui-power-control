@@ -33,7 +33,7 @@ Currently, the app supports the following features:
 
 - **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. The app is asked to quit first, and the device waits up to `POWERCONTROL_EXIT_TIMEOUT` seconds, 5 by default, for it to exit, so an app that saves when asked to quit, such as DraStic, can finish. **Warning**: An app that does not save when asked to quit, and has no save keys set as described under [Usage](#usage), will lose any progress made since the last save. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
 
-Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.
+Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI. After waking, the game stays paused for at least a second, and up to five, while the system finishes restoring audio and the screen settings, and presses of the power button are ignored for three seconds.
 
 ### Known Issues
 

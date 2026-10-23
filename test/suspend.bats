@@ -420,3 +420,48 @@ stub_emit_key() {
   run sh "$BIN_DIR/suspend"
   [ "$(grep -c "^emit-key -k" "$STUB_LOG")" -eq 1 ]
 }
+
+# a pgrep that reports the system as still resuming for its first N calls,
+# recording whether the app was still paused each time
+stub_resume_in_progress() {
+  stub pgrep "
+calls=\$(grep -c '^pgrep [a-z]' \"\$STUB_LOG\")
+echo \"pgrep-state \$(ps -o stat= -p $APP_PID | tr -d ' ')\" >>\"\$STUB_LOG\"
+[ \"\$calls\" -le $1 ]"
+}
+
+@test "suspend keeps the app paused until the system has finished resuming" {
+  start_app
+  write_app_pid
+  install_system_suspend
+  stub_resume_in_progress 2
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c "^sleep 1" "$STUB_LOG")" -eq 3 ]
+  ! grep -q "^pgrep-state [^T]" "$STUB_LOG"
+  [[ "$(process_state "$APP_PID")" != T* ]]
+}
+
+@test "suspend resumes the app after five seconds even if the system is still resuming" {
+  start_app
+  write_app_pid
+  install_system_suspend
+  stub_resume_in_progress 100
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(grep -c "^sleep 1" "$STUB_LOG")" -eq 5 ]
+  [[ "$(process_state "$APP_PID")" != T* ]]
+}
+
+@test "suspend waits for the system to resume even when the suspend script fails" {
+  start_app
+  write_app_pid
+  install_system_suspend 1
+  stub pgrep "exit 1"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$(grep -c "^sleep 1" "$STUB_LOG")" -eq 1 ]
+  [ "$(line_of "system-suspend")" -lt "$(line_of "sleep 1")" ]
+}

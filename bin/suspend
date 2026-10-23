@@ -19,6 +19,10 @@ SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
 SLEEP_TIMEOUT=120
 CHARGING_RECHECK=60
 
+# how long to let the drivers wake after deep sleep before resuming the app
+SETTLE_MIN=1
+SETTLE_MAX=5
+
 # NextUI turns the h700 panel off itself before calling its suspend script,
 # which leaves it to the caller, so the screen would otherwise stay lit
 screen_off() {
@@ -50,6 +54,25 @@ resume_game_time() {
     fi
 }
 
+resume_in_progress() {
+    pgrep alsactl >/dev/null 2>&1 || pgrep syncsettings.elf >/dev/null 2>&1
+}
+
+# The drivers, the audio device among them, are still waking for a moment after
+# the suspend script returns, and an app resumed into that can lose its audio
+# for good. The system restores the audio
+# mixer and the screen settings with alsactl and syncsettings.elf, so the app
+# waits for those as well. A suspend script can report failure after a real
+# sleep, so the wait does not depend on its exit status.
+wait_for_resume() {
+    sleep "$SETTLE_MIN"
+    waited="$SETTLE_MIN"
+    while [ "$waited" -lt "$SETTLE_MAX" ] && resume_in_progress; do
+        sleep 1
+        waited=$((waited + 1))
+    done
+}
+
 suspend_system() {
     SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
     PID="$1"
@@ -74,6 +97,7 @@ suspend_system() {
     screen_off
     "$SCRIPT"
     screen_on
+    wait_for_resume
 
     if [ -n "$PID" ]; then
         echo "Resuming app process with PID: $PID"

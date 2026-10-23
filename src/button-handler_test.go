@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestDefaultPowerDevice(t *testing.T) {
 	tests := map[string]string{
@@ -86,5 +89,16 @@ func TestIsPowerKey(t *testing.T) {
 	}
 	if isPowerKey(115) {
 		t.Error("KEY_VOLUMEUP (115) is treated as the power key")
+	}
+}
+
+func TestCooldownAfterSuspend(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+
+	if got := cooldownAfterSuspend(now, false); !got.Equal(now.Add(3 * time.Second)) {
+		t.Errorf("after deep sleep presses are ignored until %v, want %v", got, now.Add(3*time.Second))
+	}
+	if got := cooldownAfterSuspend(now, true); !got.Equal(now) {
+		t.Errorf("while paused without sleep presses are ignored until %v, want them listened to at once", got)
 	}
 }

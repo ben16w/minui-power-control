@@ -98,10 +98,18 @@ line_of() {
   grep -n "^$1" "$STUB_LOG" | head -n 1 | cut -d: -f1
 }
 
-# makes sleep block until open_gate, so a test decides when the timer that
-# powers off a sleeping device runs out
+# makes the minute long sleeps block until open_gate, so a test decides when
+# the timer that powers off a sleeping device runs out. Shorter sleeps are
+# logged and return at once.
 gate_sleep() {
-  printf '#!/bin/sh\nwhile [ ! -f "%s" ]; do /bin/sleep 0.02; done\n' "$BATS_TEST_TMPDIR/gate" >"$STUB_DIR/sleep"
+  cat >"$STUB_DIR/sleep" <<EOF
+#!/bin/sh
+if [ "\$1" -lt 60 ]; then
+  echo "sleep \$*" >>"\$STUB_LOG"
+  exit 0
+fi
+while [ ! -f "$BATS_TEST_TMPDIR/gate" ]; do /bin/sleep 0.02; done
+EOF
   chmod +x "$STUB_DIR/sleep"
 }
 
