@@ -63,6 +63,16 @@ To create a release build, use the command below. This generates a single releas
 make release
 ```
 
+## Testing
+
+The scripts in `bin` are tested with [bats](https://github.com/bats-core/bats-core):
+
+```bash
+make test
+```
+
+The tests run the scripts against stubbed device commands. `POWERCONTROL_TMP_DIR` and `POWERCONTROL_PROC_DIR` exist for the test suite only, and override the `/tmp` and `/proc` folders the scripts read and write.
+
 ## Thanks
 
 - [Shaun Inman](https://github.com/shauninman) for developing [MinUI](https://github.com/shauninman/MinUI).
