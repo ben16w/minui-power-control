@@ -31,7 +31,7 @@ Currently, the app supports the following features:
 
 - **Sleep**: On devices without deep sleep, which includes every device running MinUI, clicking the power button pauses the game and turns the screen off, the way MinUI's own sleep does. Clicking the power button again turns the screen back on and resumes the game. A device left asleep for two minutes shuts down, unless it is charging.
 
-- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on.
+- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
 
 Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.
 
@@ -46,6 +46,14 @@ minui-power-control <app-binary> &
 ```
 
 Before starting `minui-power-control`, make sure the app is already running. Replace `<app-binary>` with the actual name of the app’s binary, such as an emulator. `minui-power-control` will run in the background, watching for power button events and carrying out the actions. Once the app it watches closes, `minui-power-control` will automatically exit as well. To make things more convenient and reliable, it’s best to start it in the pak’s `launch.sh` script, placing it before the command that starts the app. This makes sure it launches alongside the app, removing the need to start it manually.
+
+The path of the rom the app is playing can be passed as a second argument:
+
+```bash
+minui-power-control <app-binary> "$ROM_PATH" &
+```
+
+On a device without deep sleep, a device left asleep long enough powers off, and with the rom path the rom is resumed when the device next starts, the same way MinUI and NextUI resume their own games. The rom is started again from the beginning unless the app saves and restores its own state. On NextUI, the rom the pak was launched for is used when no path is passed.
 
 Alternatively, it is possible to run `minui-power-control` without specifying an app binary:
 

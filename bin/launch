@@ -12,8 +12,9 @@ export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
 
 print_usage() {
-    echo "Usage: $0 <app-binary>"
+    echo "Usage: $0 [<app-binary> [<rom-path>]]"
     echo "If no app binary is specified, a dummy PID file will be created."
+    echo "The rom path lets a device that powers off while asleep resume the rom when it next starts."
 }
 
 cleanup() {
@@ -25,6 +26,7 @@ cleanup() {
     fi
     rm -f "$TMP_DIR/powercontrol-app-pid"
     rm -f "$TMP_DIR/powercontrol-dummy-pid"
+    rm -f "$TMP_DIR/powercontrol-rom-path"
 }
 
 main() {
@@ -103,10 +105,21 @@ main() {
     chmod +x "$BIN_DIR/shutdown"
     chmod +x "$BIN_DIR/suspend"
 
+    # NextUI names the rom it launched the pak for, so a pak that passes none
+    # can still resume. MinUI and NextUI both hand a resumed rom a save slot
+    # meant for their own emulator, which minarch would otherwise load the next
+    # time it starts a game.
+    ROM_PATH="${2:-${HOOK_ROM_PATH:-}}"
+    rm -f "$TMP_DIR/resume_slot.txt"
+    if [ -n "$ROM_PATH" ]; then
+        echo "Rom path: $ROM_PATH"
+        echo "$ROM_PATH" > "$TMP_DIR/powercontrol-rom-path"
+    fi
+
     if [ "$#" -eq 0 ]; then
         echo "App process not specified. Creating a dummy PID file."
         touch "$TMP_DIR/powercontrol-dummy-pid"
-    elif [ "$#" -eq 1 ]; then
+    elif [ "$#" -le 2 ]; then
         APP_BIN="$1"
         APP_PROCESS_PID=""
 

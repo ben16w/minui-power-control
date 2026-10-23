@@ -165,6 +165,42 @@ start_sleep_timer() {
     ) </dev/null >/dev/null 2>&1 &
 }
 
+# minarch writes this on entering sleep and removes it on waking, so a device
+# that powers off while asleep resumes the game when it next starts. It holds
+# the rom path relative to the SD card, without a trailing newline.
+get_auto_resume_file() {
+    if [ -n "$SHARED_USERDATA_PATH" ]; then
+        echo "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
+    elif [ -n "$SDCARD_PATH" ]; then
+        echo "$SDCARD_PATH/.userdata/shared/.minui/auto_resume.txt"
+    fi
+}
+
+write_auto_resume() {
+    rom_path="$(cat "$TMP_DIR/powercontrol-rom-path" 2>/dev/null)"
+    auto_resume_file="$(get_auto_resume_file)"
+    if [ -z "$rom_path" ] || [ -z "$SDCARD_PATH" ] || [ -z "$auto_resume_file" ]; then
+        return
+    fi
+
+    case "$rom_path" in
+        "$SDCARD_PATH"/*)
+            mkdir -p "$(dirname "$auto_resume_file")"
+            printf '%s' "${rom_path#"$SDCARD_PATH"}" > "$auto_resume_file"
+            ;;
+        *)
+            echo "Rom $rom_path is not on the SD card, it cannot be resumed after powering off"
+            ;;
+    esac
+}
+
+clear_auto_resume() {
+    auto_resume_file="$(get_auto_resume_file)"
+    if [ -n "$auto_resume_file" ]; then
+        rm -f "$auto_resume_file"
+    fi
+}
+
 fallback_suspend() {
     PID="$1"
     echo "Fallback suspend for app process with PID: $PID"
@@ -180,11 +216,13 @@ fallback_suspend() {
         kill -STOP "$PID" || true
         killall -STOP keymon.elf 2>/dev/null || true
         fallback_screen_off
+        write_auto_resume
         sync
         start_sleep_timer
     else
         echo "Resuming app process with PID: $PID"
         rm -f "$TMP_DIR/powercontrol-suspend-active"
+        clear_auto_resume
         fallback_screen_on
         killall -CONT keymon.elf 2>/dev/null || true
         kill -CONT "$PID" || true

@@ -28,7 +28,9 @@ setup_power_control() {
   export DEVICE=brick
   export SYSTEM_PATH="$BATS_TEST_TMPDIR/system"
   mkdir -p "$SYSTEM_PATH/bin"
-  unset IS_NEXT
+  export SDCARD_PATH="$BATS_TEST_TMPDIR/sdcard"
+  export SHARED_USERDATA_PATH="$SDCARD_PATH/.userdata/shared"
+  unset IS_NEXT HOOK_ROM_PATH
 
   for name in minui-presenter killall poweroff syncsettings.elf set-brightness; do
     stub "$name"

@@ -83,3 +83,41 @@ setup() {
   wait "$launch_pid"
   grep -q "Creating a dummy PID file" "$BATS_TEST_TMPDIR/launch.out"
 }
+
+# the rom path only exists while launch runs, so the stubbed button handler
+# records what it saw
+record_rom_path() {
+  stub button-handler "echo \"rom \$(cat \"$POWERCONTROL_TMP_DIR/powercontrol-rom-path\" 2>/dev/null)\" >>\"\$STUB_LOG\"; exec /bin/sleep 30"
+  mv "$STUB_DIR/button-handler" "$BIN_DIR/$architecture/button-handler"
+}
+
+@test "launch records the rom it was given for resuming after a power off" {
+  record_rom_path
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep "$SDCARD_PATH/Roms/Game (TAG)/game.rom"
+  [ "$status" -eq 0 ]
+  grep -q "^rom $SDCARD_PATH/Roms/Game (TAG)/game.rom$" "$STUB_LOG"
+  [ ! -f "$POWERCONTROL_TMP_DIR/powercontrol-rom-path" ]
+}
+
+@test "launch falls back to the rom NextUI launched the pak for" {
+  record_rom_path
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  HOOK_ROM_PATH="$SDCARD_PATH/Roms/Game (TAG)/hook.rom" run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  grep -q "^rom $SDCARD_PATH/Roms/Game (TAG)/hook.rom$" "$STUB_LOG"
+}
+
+@test "launch clears the save slot a resumed rom is handed" {
+  echo 9 >"$POWERCONTROL_TMP_DIR/resume_slot.txt"
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [ ! -f "$POWERCONTROL_TMP_DIR/resume_slot.txt" ]
+}

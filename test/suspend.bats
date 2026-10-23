@@ -292,3 +292,62 @@ check_fallback_screen() {
   echo Discharging >"$POWERCONTROL_SYS_DIR/class/power_supply/battery/status"
   wait_for_log shutdown
 }
+
+@test "suspend without a system script resumes the rom if the device powers off asleep" {
+  start_app
+  write_app_pid
+  echo "$SDCARD_PATH/Roms/Game (TAG)/game.rom" >"$POWERCONTROL_TMP_DIR/powercontrol-rom-path"
+  auto_resume="$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$auto_resume")" = "/Roms/Game (TAG)/game.rom" ]
+  # minarch writes no trailing newline, so the last byte is the rom's own
+  [ "$(tail -c 1 "$auto_resume")" = "m" ]
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ ! -f "$auto_resume" ]
+}
+
+@test "suspend without a system script keeps the resume file once the device powers off" {
+  start_app
+  write_app_pid
+  echo "$SDCARD_PATH/Roms/Game (TAG)/game.rom" >"$POWERCONTROL_TMP_DIR/powercontrol-rom-path"
+
+  run sh "$BIN_DIR/suspend"
+  open_gate
+  wait_for_log shutdown
+  [ -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt" ]
+}
+
+@test "suspend without a rom path writes no resume file" {
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ ! -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt" ]
+}
+
+@test "suspend cannot resume a rom that is not on the SD card" {
+  start_app
+  write_app_pid
+  echo "/elsewhere/game.rom" >"$POWERCONTROL_TMP_DIR/powercontrol-rom-path"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"is not on the SD card"* ]]
+  [ ! -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt" ]
+}
+
+@test "suspend with a system script leaves resuming to the system" {
+  start_app
+  write_app_pid
+  install_system_suspend
+  echo "$SDCARD_PATH/Roms/Game (TAG)/game.rom" >"$POWERCONTROL_TMP_DIR/powercontrol-rom-path"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ ! -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt" ]
+}
