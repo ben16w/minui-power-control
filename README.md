@@ -27,7 +27,7 @@ The power button is read from the input device each platform usually exposes it 
 
 Currently, the app supports the following features:
 
-- **Deep Sleep**: Deep sleep is supported on NextUI, as well a MinUI devices which have it enabled. Clicking the power button will immediately put the device into deep sleep. Clicking the power button again will wake the device up and resume the game.
+- **Deep Sleep**: Deep sleep is supported on NextUI, as well a MinUI devices which have it enabled. Clicking the power button will immediately put the device into deep sleep. Clicking the power button again will wake the device up and resume the game. On NextUI, the game time tracker is paused while the device sleeps, so time asleep is not counted as play time.
 
 - **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on.
 

@@ -55,3 +55,13 @@ setup() {
   run wait "$OTHER_PID"
   [ "$status" -eq 143 ]
 }
+
+@test "shutdown closes the NextUI game time session" {
+  stub gametimectl.elf
+  export IS_NEXT=yes
+  start_app
+  write_app_pid
+
+  run sh "$BIN_DIR/shutdown"
+  grep -q "^gametimectl.elf stop_all" "$STUB_LOG"
+}
