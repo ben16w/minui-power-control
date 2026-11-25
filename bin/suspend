@@ -10,8 +10,25 @@ export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 
 # overridable so the test suite can observe what the scripts write
 TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
+SYS_DIR="${POWERCONTROL_SYS_DIR:-/sys}"
 
 SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
+
+# NextUI turns the h700 panel off itself before calling its suspend script,
+# which leaves it to the caller, so the screen would otherwise stay lit
+screen_off() {
+    if [ "$PLATFORM" = "h700" ]; then
+        set-brightness 0
+        echo 1 > "$SYS_DIR/class/graphics/fb0/blank"
+    fi
+}
+
+screen_on() {
+    if [ "$PLATFORM" = "h700" ]; then
+        echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
+        syncsettings.elf
+    fi
+}
 
 suspend_system() {
     SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
@@ -31,7 +48,9 @@ suspend_system() {
         kill -STOP "$PID" || true
     fi
 
+    screen_off
     "$SCRIPT"
+    screen_on
 
     if [ -n "$PID" ]; then
         echo "Resuming emulator process with PID: $PID"

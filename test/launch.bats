@@ -12,6 +12,35 @@ setup() {
   [[ "$output" == *"notaplatform is not a supported platform."* ]]
 }
 
+@test "launch refuses a platform whose name is part of a supported one" {
+  for platform in rg35xx tg50 h70; do
+    PLATFORM="$platform" run sh "$BIN_DIR/launch"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"$platform is not a supported platform."* ]]
+  done
+}
+
+@test "launch runs on h700" {
+  export PLATFORM=h700
+  install_release_stubs
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  grep -q "^button-handler" "$STUB_LOG"
+}
+
+@test "launch on h700 needs syncsettings.elf to restore the screen" {
+  export PLATFORM=h700
+  install_release_stubs
+  rm -f "$STUB_DIR/syncsettings.elf"
+
+  run sh "$BIN_DIR/launch"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"syncsettings.elf binary not found."* ]]
+}
+
 @test "launch refuses to start without minui-presenter" {
   rm -f "$STUB_DIR/minui-presenter" "$BIN_DIR/$PLATFORM/minui-presenter"
 

@@ -59,6 +59,36 @@ EOF
   grep -q "^syncsettings.elf" "$STUB_LOG"
 }
 
+@test "suspend on h700 turns the screen off around the system suspend script" {
+  export PLATFORM=h700
+  blank="$POWERCONTROL_SYS_DIR/class/graphics/fb0/blank"
+  start_app
+  write_app_pid
+  cat >"$SYSTEM_PATH/bin/suspend" <<EOF
+#!/bin/sh
+echo "system-suspend blank=\$(cat "$blank")" >>"\$STUB_LOG"
+EOF
+  chmod +x "$SYSTEM_PATH/bin/suspend"
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$blank")" = "0" ]
+  [ "$(sed -n 1p "$STUB_LOG")" = "set-brightness 0" ]
+  [ "$(sed -n 2p "$STUB_LOG")" = "system-suspend blank=1" ]
+  [ "$(sed -n 3p "$STUB_LOG")" = "syncsettings.elf " ]
+}
+
+@test "suspend leaves the screen alone on platforms whose suspend script handles it" {
+  start_app
+  write_app_pid
+  install_system_suspend
+
+  run sh "$BIN_DIR/suspend"
+  [ "$status" -eq 0 ]
+  [ ! -f "$POWERCONTROL_SYS_DIR/class/graphics/fb0/blank" ]
+  ! grep -q "^set-brightness 0" "$STUB_LOG"
+}
+
 @test "suspend without an app still runs the system suspend script" {
   install_system_suspend
   touch "$POWERCONTROL_TMP_DIR/powercontrol-dummy-pid"

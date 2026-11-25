@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -24,13 +25,58 @@ var (
 	shutdownScript = filepath.Join(rootPath, "shutdown")
 )
 
-func openPowerDevice() (*evdev.InputDevice, error) {
-	switch os.Getenv("PLATFORM") {
+// defaultPowerDevice is where each platform's power key is usually found.
+func defaultPowerDevice(platform string) string {
+	switch platform {
+	case "h700":
+		// axp2202-pek; event1 is the ANBERNIC-keys gamepad
+		return "/dev/input/event0"
 	case "tg5050", "my355":
-		return evdev.Open("/dev/input/event2")
+		return "/dev/input/event2"
 	default:
-		return evdev.Open("/dev/input/event1")
+		return "/dev/input/event1"
 	}
+}
+
+// findPowerDevice keeps the platform's usual device when it reports a power
+// key, and otherwise takes the first candidate that does, so a device whose
+// input nodes are numbered differently still finds its power button.
+func findPowerDevice(preferred string, candidates []string, hasPowerKey func(string) bool) (string, error) {
+	if hasPowerKey(preferred) {
+		return preferred, nil
+	}
+
+	for _, path := range candidates {
+		if path != preferred && hasPowerKey(path) {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("no input device reports a power key")
+}
+
+func deviceHasPowerKey(path string) bool {
+	dev, err := evdev.Open(path)
+	if err != nil {
+		return false
+	}
+	defer dev.Close()
+
+	for _, code := range dev.CapableEvents(evdev.EV_KEY) {
+		if isPowerKey(code) {
+			return true
+		}
+	}
+	return false
+}
+
+func openPowerDevice() (*evdev.InputDevice, error) {
+	candidates, _ := filepath.Glob("/dev/input/event*")
+	path, err := findPowerDevice(defaultPowerDevice(os.Getenv("PLATFORM")), candidates, deviceHasPowerKey)
+	if err != nil {
+		return nil, err
+	}
+	return evdev.Open(path)
 }
 
 func isPowerKey(code evdev.EvCode) bool {

@@ -52,11 +52,16 @@ main() {
         export DEVICE="my355"
     fi
 
-    allowed_platforms="tg5040 tg5050 my355 rg35xxplus miyoomini"
-    if ! echo "$allowed_platforms" | grep -q "$PLATFORM"; then
-        echo "$PLATFORM is not a supported platform."
-        exit 1
-    fi
+    # a whole word match, as grep also accepted every substring, so rg35xx and
+    # tg50 both passed as supported platforms
+    allowed_platforms="tg5040 tg5050 my355 rg35xxplus miyoomini h700"
+    case " $allowed_platforms " in
+        *" $PLATFORM "*) ;;
+        *)
+            echo "$PLATFORM is not a supported platform."
+            exit 1
+            ;;
+    esac
 
     # Pak launchers normally export SYSTEM_PATH; default it for standalone runs.
     export SYSTEM_PATH="${SYSTEM_PATH:-/mnt/SDCARD/.system/$PLATFORM}"
@@ -81,7 +86,7 @@ main() {
         exit 1
     fi
 
-    if [ "$PLATFORM" = "tg5040" ]; then
+    if [ "$PLATFORM" = "tg5040" ] || [ "$PLATFORM" = "h700" ]; then
         if ! command -v syncsettings.elf >/dev/null 2>&1; then
             echo "syncsettings.elf binary not found."
             exit 1

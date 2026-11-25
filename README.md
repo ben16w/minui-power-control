@@ -17,8 +17,11 @@ This app is designed and tested on the following MinUI platforms and devices:
 - `my355`: Miyoo Flip
 - `miyoomini`: Miyoo Mini Plus (_not_ the Miyoo Mini)
 - `rg35xxplus`: RG-35XX Plus, RG-34XX, RG-35XX H, RG-35XX SP
+- `h700`: Anbernic RG28XX, RG34XX, RG34XX SP, RG35XX (Plus and 2024), RG35XX H, RG35XX Pro, RG35XX SP, RG40XX H, RG40XX V, RG CubeXX and RGSP (NextUI only)
 
-Deep sleep is supported on Trimui Brick, Trimui Smart Pro, Trimui Smart Pro S, and Miyoo Flip.
+Deep sleep is supported on Trimui Brick, Trimui Smart Pro, Trimui Smart Pro S, Miyoo Flip, and the Anbernic H700 devices running NextUI.
+
+The power button is read from the input device each platform usually exposes it on. If that device reports no power key, every other input device is checked and the first one that reports one is used.
 
 ## Features
 
@@ -65,13 +68,13 @@ make release
 
 ## Testing
 
-The scripts in `bin` are tested with [bats](https://github.com/bats-core/bats-core):
+The scripts in `bin` are tested with [bats](https://github.com/bats-core/bats-core), and the button handler with `go test`:
 
 ```bash
 make test
 ```
 
-The tests run the scripts against stubbed device commands. `POWERCONTROL_TMP_DIR` and `POWERCONTROL_PROC_DIR` exist for the test suite only, and override the `/tmp` and `/proc` folders the scripts read and write.
+The tests run the scripts against stubbed device commands. `POWERCONTROL_TMP_DIR`, `POWERCONTROL_PROC_DIR` and `POWERCONTROL_SYS_DIR` exist for the test suite only, and override the `/tmp`, `/proc` and `/sys` folders the scripts read and write.
 
 ## Thanks
 
