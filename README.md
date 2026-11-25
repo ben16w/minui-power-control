@@ -31,9 +31,10 @@ Currently, the app supports the following features:
 
 - **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on.
 
+Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.
+
 ### Known Issues
 
-- When resuming from deep sleep, the Wi-Fi may not reconnect.
 - When resuming from deep sleep, if the brightness is set to 0, the screen will not turn on. This can be fixed by changing the brightness.
 
 ## Usage
