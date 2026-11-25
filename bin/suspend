@@ -14,20 +14,40 @@ SYS_DIR="${POWERCONTROL_SYS_DIR:-/sys}"
 
 SYSTEM_SUSPEND_SCRIPT="$SYSTEM_PATH/bin/suspend"
 
-# NextUI turns the h700 panel off itself before calling its suspend script,
-# which leaves it to the caller, so the screen would otherwise stay lit
+# MinUI powers off after two minutes asleep, checking again every minute while
+# the device charges
+SLEEP_TIMEOUT=120
+CHARGING_RECHECK=60
+
+# how long to let the drivers wake after deep sleep before resuming the app
+SETTLE_MIN=1
+SETTLE_MAX=5
+
+# NextUI turns the h700 and my355 panels off itself before calling its suspend
+# script, which leaves it to the caller, so the screen would otherwise stay lit.
+# Powering the my355 backlight down leaves its brightness where it was.
 screen_off() {
-    if [ "$PLATFORM" = "h700" ]; then
-        set-brightness 0
-        echo 1 > "$SYS_DIR/class/graphics/fb0/blank"
-    fi
+    case "$PLATFORM" in
+        h700)
+            set-brightness 0
+            echo 1 > "$SYS_DIR/class/graphics/fb0/blank"
+            ;;
+        my355)
+            echo 4 > "$SYS_DIR/class/backlight/backlight/bl_power"
+            ;;
+    esac
 }
 
 screen_on() {
-    if [ "$PLATFORM" = "h700" ]; then
-        echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
-        syncsettings.elf
-    fi
+    case "$PLATFORM" in
+        h700)
+            echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
+            syncsettings.elf
+            ;;
+        my355)
+            echo 0 > "$SYS_DIR/class/backlight/backlight/bl_power"
+            ;;
+    esac
 }
 
 # NextUI's game time tracker keeps counting until it is told to stop, so the
@@ -45,6 +65,25 @@ resume_game_time() {
     fi
 }
 
+resume_in_progress() {
+    pgrep alsactl >/dev/null 2>&1 || pgrep syncsettings.elf >/dev/null 2>&1
+}
+
+# The drivers, the audio device among them, are still waking for a moment after
+# the suspend script returns, and an app resumed into that can lose its audio
+# for good. The system restores the audio
+# mixer and the screen settings with alsactl and syncsettings.elf, so the app
+# waits for those as well. A suspend script can report failure after a real
+# sleep, so the wait does not depend on its exit status.
+wait_for_resume() {
+    sleep "$SETTLE_MIN"
+    waited="$SETTLE_MIN"
+    while [ "$waited" -lt "$SETTLE_MAX" ] && resume_in_progress; do
+        sleep 1
+        waited=$((waited + 1))
+    done
+}
+
 suspend_system() {
     SCRIPT="$SYSTEM_SUSPEND_SCRIPT"
     PID="$1"
@@ -58,6 +97,7 @@ suspend_system() {
     fi
     chmod +x "$SCRIPT"
 
+    "$BIN_DIR/send-save-keys" || true
     pause_game_time
 
     if [ -n "$PID" ]; then
@@ -68,6 +108,7 @@ suspend_system() {
     screen_off
     "$SCRIPT"
     screen_on
+    wait_for_resume
 
     if [ -n "$PID" ]; then
         echo "Resuming app process with PID: $PID"
@@ -82,6 +123,114 @@ suspend_system() {
     resume_game_time
 }
 
+# Without a system suspend script the device cannot sleep, so this does what
+# MinUI does for its own cores: pause, turn the screen off, and power off if
+# the device is left asleep. MinUI restores brightness through a library a
+# script cannot reach, so the screen is switched off with controls that leave
+# the brightness alone wherever syncsettings.elf cannot put it back.
+fallback_screen_off() {
+    case "$PLATFORM" in
+        miyoomini)
+            echo 4 > "$SYS_DIR/class/gpio/export"
+            echo out > "$SYS_DIR/class/gpio/gpio4/direction"
+            echo 0 > "$SYS_DIR/class/gpio/gpio4/value"
+            ;;
+        rg35xxplus)
+            echo 4 > "$SYS_DIR/class/graphics/fb0/blank"
+            ;;
+        tg5040)
+            set-brightness 0
+            ;;
+        h700 | my355)
+            screen_off
+            ;;
+    esac
+}
+
+fallback_screen_on() {
+    case "$PLATFORM" in
+        miyoomini)
+            echo 1 > "$SYS_DIR/class/gpio/gpio4/value"
+            ;;
+        rg35xxplus)
+            echo 0 > "$SYS_DIR/class/graphics/fb0/blank"
+            ;;
+        tg5040)
+            syncsettings.elf
+            ;;
+        h700 | my355)
+            screen_on
+            ;;
+    esac
+}
+
+is_charging() {
+    for supply_status in "$SYS_DIR"/class/power_supply/*/status; do
+        case "$(cat "$supply_status" 2>/dev/null)" in
+            Charging | Full)
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
+
+# The marker holds the pid of the suspend that started this timer, so a timer
+# left over from an earlier sleep cannot power off the device after a new one.
+# Its output is detached because a caller waiting on this script's output
+# would otherwise wait for the timer too.
+start_sleep_timer() {
+    sleep_token="$$"
+    echo "$sleep_token" > "$TMP_DIR/powercontrol-suspend-active"
+    (
+        sleep "$SLEEP_TIMEOUT"
+        while [ "$(cat "$TMP_DIR/powercontrol-suspend-active" 2>/dev/null)" = "$sleep_token" ]; do
+            if ! is_charging; then
+                echo "Asleep for ${SLEEP_TIMEOUT}s, shutting down..."
+                "$BIN_DIR/shutdown"
+                exit
+            fi
+            sleep "$CHARGING_RECHECK"
+        done
+    ) </dev/null >/dev/null 2>&1 &
+}
+
+# minarch writes this on entering sleep and removes it on waking, so a device
+# that powers off while asleep resumes the game when it next starts. It holds
+# the rom path relative to the SD card, without a trailing newline.
+get_auto_resume_file() {
+    if [ -n "$SHARED_USERDATA_PATH" ]; then
+        echo "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
+    elif [ -n "$SDCARD_PATH" ]; then
+        echo "$SDCARD_PATH/.userdata/shared/.minui/auto_resume.txt"
+    fi
+}
+
+write_auto_resume() {
+    rom_path="$(cat "$TMP_DIR/powercontrol-rom-path" 2>/dev/null)"
+    auto_resume_file="$(get_auto_resume_file)"
+    if [ -z "$rom_path" ] || [ -z "$SDCARD_PATH" ] || [ -z "$auto_resume_file" ]; then
+        return
+    fi
+
+    case "$rom_path" in
+        "$SDCARD_PATH"/*)
+            mkdir -p "$(dirname "$auto_resume_file")"
+            printf '%s' "${rom_path#"$SDCARD_PATH"}" > "$auto_resume_file"
+            ;;
+        *)
+            echo "Rom $rom_path is not on the SD card, it cannot be resumed after powering off"
+            ;;
+    esac
+}
+
+clear_auto_resume() {
+    auto_resume_file="$(get_auto_resume_file)"
+    if [ -n "$auto_resume_file" ]; then
+        rm -f "$auto_resume_file"
+    fi
+}
+
 fallback_suspend() {
     PID="$1"
     echo "Fallback suspend for app process with PID: $PID"
@@ -93,15 +242,21 @@ fallback_suspend() {
 
     if [ ! -f "$TMP_DIR/powercontrol-suspend-active" ]; then
         echo "Pausing app process with PID: $PID"
+        "$BIN_DIR/send-save-keys" || true
         pause_game_time
         kill -STOP "$PID" || true
-        [ "$PLATFORM" = "tg5040" ] && set-brightness 0
-        touch "$TMP_DIR/powercontrol-suspend-active"
+        killall -STOP keymon.elf 2>/dev/null || true
+        fallback_screen_off
+        write_auto_resume
+        sync
+        start_sleep_timer
     else
         echo "Resuming app process with PID: $PID"
-        kill -CONT "$PID" || true
-        [ "$PLATFORM" = "tg5040" ] && syncsettings.elf
         rm -f "$TMP_DIR/powercontrol-suspend-active"
+        clear_auto_resume
+        fallback_screen_on
+        killall -CONT keymon.elf 2>/dev/null || true
+        kill -CONT "$PID" || true
         resume_game_time
     fi
 }
