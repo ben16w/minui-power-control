@@ -12,7 +12,7 @@ setup_power_control() {
   # runs its own copy with the release binaries stubbed out where they would be
   BIN_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$BIN_DIR"
-  cp "$REPO_ROOT/bin/launch" "$REPO_ROOT/bin/suspend" "$REPO_ROOT/bin/shutdown" "$BIN_DIR/"
+  cp "$REPO_ROOT/bin/launch" "$REPO_ROOT/bin/suspend" "$REPO_ROOT/bin/shutdown" "$REPO_ROOT/bin/send-save-keys" "$BIN_DIR/"
 
   STUB_DIR="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUB_DIR"
@@ -28,8 +28,11 @@ setup_power_control() {
   export DEVICE=brick
   export SYSTEM_PATH="$BATS_TEST_TMPDIR/system"
   mkdir -p "$SYSTEM_PATH/bin"
-  unset IS_NEXT
+  export SDCARD_PATH="$BATS_TEST_TMPDIR/sdcard"
+  export SHARED_USERDATA_PATH="$SDCARD_PATH/.userdata/shared"
+  unset IS_NEXT HOOK_ROM_PATH
 
+  # minui-presenter stands in for the one the pak puts on PATH
   for name in minui-presenter killall poweroff syncsettings.elf set-brightness; do
     stub "$name"
   done
@@ -42,11 +45,15 @@ setup_power_control() {
 }
 
 teardown() {
+  # a sleep timer still waiting on the gate sees the device awake and exits
+  rm -f "$POWERCONTROL_TMP_DIR/powercontrol-suspend-active"
+  touch "$BATS_TEST_TMPDIR/gate"
+
   # only ever real child pids: a kill of 0 would signal the whole test run
   for pid in ${APP_PID:-} ${OTHER_PID:-}; do
     [ "$pid" -gt 0 ] || continue
     kill -CONT "$pid" 2>/dev/null || true
-    kill "$pid" 2>/dev/null || true
+    kill -9 "$pid" 2>/dev/null || true
   done
 }
 
@@ -59,7 +66,7 @@ stub() {
 # bin/launch checks for these beside itself, where a release build puts them
 install_release_stubs() {
   mkdir -p "$BIN_DIR/$PLATFORM" "$BIN_DIR/$architecture"
-  cp "$STUB_DIR/minui-presenter" "$STUB_DIR/set-brightness" "$BIN_DIR/$PLATFORM/"
+  cp "$STUB_DIR/set-brightness" "$BIN_DIR/$PLATFORM/"
   stub button-handler 'exec /bin/sleep 30'
   mv "$STUB_DIR/button-handler" "$BIN_DIR/$architecture/button-handler"
 }
@@ -68,6 +75,13 @@ install_release_stubs() {
 start_app() {
   /bin/sleep "${1:-30}" 3>&- &
   APP_PID=$!
+}
+
+# an app the test shell is not the parent of, so it is reaped as soon as it
+# exits rather than lingering as a zombie that still answers kill -0. BODY
+# defaults to a long sleep.
+start_detached_app() {
+  APP_PID="$(sh -c "{ ${1:-/bin/sleep 30}; } </dev/null >/dev/null 2>&1 3>&- & echo \$!")"
 }
 
 write_app_pid() {
@@ -83,4 +97,32 @@ process_state() {
 # can assert the order commands ran in
 line_of() {
   grep -n "^$1" "$STUB_LOG" | head -n 1 | cut -d: -f1
+}
+
+# makes the minute long sleeps block until open_gate, so a test decides when
+# the timer that powers off a sleeping device runs out. Shorter sleeps are
+# logged and return at once.
+gate_sleep() {
+  cat >"$STUB_DIR/sleep" <<EOF
+#!/bin/sh
+if [ "\$1" -lt 60 ]; then
+  echo "sleep \$*" >>"\$STUB_LOG"
+  exit 0
+fi
+while [ ! -f "$BATS_TEST_TMPDIR/gate" ]; do /bin/sleep 0.02; done
+EOF
+  chmod +x "$STUB_DIR/sleep"
+}
+
+open_gate() {
+  touch "$BATS_TEST_TMPDIR/gate"
+}
+
+# waits up to two seconds for a stub log line starting with PATTERN
+wait_for_log() {
+  for _ in $(seq 1 100); do
+    grep -q "^$1" "$STUB_LOG" && return 0
+    /bin/sleep 0.02
+  done
+  return 1
 }
