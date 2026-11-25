@@ -71,7 +71,7 @@ start_app() {
 }
 
 write_app_pid() {
-  echo "$APP_PID" >"$POWERCONTROL_TMP_DIR/powercontrol-emulator-pid"
+  echo "$APP_PID" >"$POWERCONTROL_TMP_DIR/powercontrol-app-pid"
 }
 
 # prints the process state, which starts with T while it is stopped
