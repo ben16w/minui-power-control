@@ -44,7 +44,7 @@ suspend_system() {
     chmod +x "$SCRIPT"
 
     if [ -n "$PID" ]; then
-        echo "Suspending emulator process with PID: $PID"
+        echo "Suspending app process with PID: $PID"
         kill -STOP "$PID" || true
     fi
 
@@ -53,7 +53,7 @@ suspend_system() {
     screen_on
 
     if [ -n "$PID" ]; then
-        echo "Resuming emulator process with PID: $PID"
+        echo "Resuming app process with PID: $PID"
         kill -CONT "$PID" || true
     fi
 
@@ -65,7 +65,7 @@ suspend_system() {
 
 fallback_suspend() {
     PID="$1"
-    echo "Fallback suspend for emulator process with PID: $PID"
+    echo "Fallback suspend for app process with PID: $PID"
 
     if [ -z "$PID" ]; then
         echo "No PID provided for fallback suspend."
@@ -73,12 +73,12 @@ fallback_suspend() {
     fi
 
     if [ ! -f "$TMP_DIR/powercontrol-suspend-active" ]; then
-        echo "Pausing emulator process with PID: $PID"
+        echo "Pausing app process with PID: $PID"
         kill -STOP "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && set-brightness 0
         touch "$TMP_DIR/powercontrol-suspend-active"
     else
-        echo "Resuming emulator process with PID: $PID"
+        echo "Resuming app process with PID: $PID"
         kill -CONT "$PID" || true
         [ "$PLATFORM" = "tg5040" ] && syncsettings.elf
         rm -f "$TMP_DIR/powercontrol-suspend-active"
@@ -86,21 +86,21 @@ fallback_suspend() {
 }
 
 main() {
-    if [ -f "$TMP_DIR/powercontrol-emulator-pid" ]; then
-        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-emulator-pid")
-        echo "Emulator PID file found. Killing the emulator process with PID: $PROCESS_PID"
+    if [ -f "$TMP_DIR/powercontrol-app-pid" ]; then
+        PROCESS_PID=$(cat "$TMP_DIR/powercontrol-app-pid")
+        echo "App PID file found. Suspending the app process with PID: $PROCESS_PID"
 
         if [ -z "$PROCESS_PID" ] || ! kill -0 "$PROCESS_PID" 2>/dev/null; then
-            echo "Emulator process $PROCESS_PID not found."
+            echo "App process $PROCESS_PID not found."
             exit 1
         fi
 
         suspend_system "$PROCESS_PID"
     elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
-        echo "Dummy PID file found. No emulator process to suspend."
+        echo "Dummy PID file found. No app process to suspend."
         suspend_system
     else
-        echo "Emulator PID file not found."
+        echo "App PID file not found."
         exit 1
     fi
 }
