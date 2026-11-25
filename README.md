@@ -29,13 +29,29 @@ Currently, the app supports the following features:
 
 - **Deep Sleep**: Deep sleep is supported on NextUI, as well a MinUI devices which have it enabled. Clicking the power button will immediately put the device into deep sleep. Clicking the power button again will wake the device up and resume the game. On NextUI, the game time tracker is paused while the device sleeps, so time asleep is not counted as play time.
 
-- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. **Warning**: Currently, this will **NOT** save the game, and any progress made since the last save will be lost. Also, the game will not resume when the device is turned back on.
+- **Sleep**: On devices without deep sleep, which includes every device running MinUI, clicking the power button pauses the game and turns the screen off, the way MinUI's own sleep does. Clicking the power button again turns the screen back on and resumes the game. A device left asleep for two minutes shuts down, unless it is charging.
 
-Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI.
+- **Lid**: On the Miyoo Flip, closing the lid sleeps the device the same way a click of the power button does, and opening it wakes the device and resumes the game. The lid is only watched on devices that have the Flip's lid sensor.
+
+- **Shutdown**: Shut down the device by pressing and holding the power button for 2 seconds. The app is asked to quit first, and the device waits up to `POWERCONTROL_EXIT_TIMEOUT` seconds, 5 by default, for it to exit, so an app that saves when asked to quit, such as DraStic, can finish. **Warning**: An app that does not save when asked to quit, and has no save keys set as described under [Usage](#usage), will lose any progress made since the last save. Also, the game will not resume when the device is turned back on, unless it was shut down while asleep on a device without deep sleep and its rom path was given, as described under [Usage](#usage).
+
+Deep sleep runs the system's own suspend script, at `$SYSTEM_PATH/bin/suspend`, which also stops Wi-Fi and Bluetooth before sleeping and restores them on waking. NextUI releases before [LoveRetro/NextUI#314](https://github.com/LoveRetro/NextUI/pull/314) could skip that restore, so if Wi-Fi does not reconnect after waking, update NextUI. After waking, the game stays paused for at least a second, and up to five, while the system finishes restoring audio and the screen settings, and presses of the power button are ignored for three seconds.
 
 ### Known Issues
 
 - When resuming from deep sleep, if the brightness is set to 0, the screen will not turn on. This can be fixed by changing the brightness.
+
+### Future Plans
+
+The following changes are tested against stubbed device commands but still need to be confirmed on a device:
+
+- Deep sleep and the screen turning off on the Anbernic H700 devices running NextUI.
+- The screen turning off during deep sleep on the Miyoo Flip running NextUI.
+- Finding the power button on the `rg35xxplus` devices running MinUI, where the input device that reports it is not known.
+- Sleeping with the screen off, powering off after two minutes asleep, and resuming the rom on the next start, on each MinUI platform.
+- Apps such as DraStic keeping their audio after waking from deep sleep several times in quick succession.
+- Sending save keys with the 32-bit build of emit-key.
+- Sleeping when the lid closes and waking when it opens on the Miyoo Flip, under MinUI and NextUI.
 
 ## Usage
 
@@ -44,6 +60,26 @@ minui-power-control <app-binary> &
 ```
 
 Before starting `minui-power-control`, make sure the app is already running. Replace `<app-binary>` with the actual name of the app’s binary, such as an emulator. `minui-power-control` will run in the background, watching for power button events and carrying out the actions. Once the app it watches closes, `minui-power-control` will automatically exit as well. To make things more convenient and reliable, it’s best to start it in the pak’s `launch.sh` script, placing it before the command that starts the app. This makes sure it launches alongside the app, removing the need to start it manually.
+
+`minui-power-control` shows its messages, such as "Powering off", with [minui-presenter](https://github.com/josegonzalez/minui-presenter), but does not bundle it, since the right build depends on the platform and on whether MinUI or NextUI is running. A pak that wants the messages on screen puts its own `minui-presenter` on `PATH` before starting `minui-power-control`. Without one, the messages are only logged.
+
+The path of the rom the app is playing can be passed as a second argument:
+
+```bash
+minui-power-control <app-binary> "$ROM_PATH" &
+```
+
+On a device without deep sleep, a device left asleep long enough powers off, and with the rom path the rom is resumed when the device next starts, the same way MinUI and NextUI resume their own games. The rom is started again from the beginning unless the app saves and restores its own state. On NextUI, the rom the pak was launched for is used when no path is passed.
+
+### Saving before sleeping or shutting down
+
+`minui-power-control` cannot save on behalf of the app, but it can ask the app to save by pressing the keys the app saves on. Set `POWERCONTROL_SAVE_KEYS` to those keys before starting it, in the format [emit-key](https://github.com/josegonzalez/emit-key) takes, such as `f5` or `f1,f5:500000`:
+
+```bash
+POWERCONTROL_SAVE_KEYS="f5" minui-power-control <app-binary> &
+```
+
+The keys are pressed before the device goes to sleep or shuts down, while the app is still running, and the device waits `POWERCONTROL_SAVE_DELAY` seconds, 2 by default, for the save to finish. emit-key only presses keyboard keys, from `F1` to `F12`, `a` to `z`, `0` to `9` and `Esc`, so the app has to have one of them bound to saving. When `POWERCONTROL_SAVE_KEYS` is not set, no keys are pressed.
 
 Alternatively, it is possible to run `minui-power-control` without specifying an app binary:
 

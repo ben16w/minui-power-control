@@ -20,8 +20,14 @@ show_message() {
         seconds="forever"
     fi
 
-    killall minui-presenter >/dev/null 2>&1 || true
     echo "$message" 1>&2
+
+    # the pak supplies the presenter, and one that does not is only logged to
+    if ! command -v minui-presenter >/dev/null 2>&1; then
+        return 0
+    fi
+
+    killall minui-presenter >/dev/null 2>&1 || true
     if [ "$seconds" = "forever" ]; then
         minui-presenter --message "$message" --timeout -1 &
     else
@@ -67,6 +73,25 @@ shutdown_system() {
     done
 }
 
+# Apps such as DraStic save when asked to quit, which takes longer than the
+# signal does to arrive, so the power stays on until the app has exited or the
+# timeout runs out
+wait_for_exit() {
+    PID="$1"
+    exit_timeout="${POWERCONTROL_EXIT_TIMEOUT:-5}"
+
+    waited=0
+    while kill -0 "$PID" 2>/dev/null; do
+        if [ "$waited" -ge "$exit_timeout" ]; then
+            echo "App process $PID did not exit within ${exit_timeout}s, shutting down anyway."
+            return
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    echo "App process $PID exited."
+}
+
 main() {
     if [ -f "$TMP_DIR/powercontrol-app-pid" ]; then
         PROCESS_PID=$(cat "$TMP_DIR/powercontrol-app-pid")
@@ -77,7 +102,17 @@ main() {
             exit 1
         fi
 
+        # a paused app cannot act on the signal, and on NextUI the pak has to
+        # exit before the device powers off
+        if [ -f "$TMP_DIR/powercontrol-suspend-active" ]; then
+            rm -f "$TMP_DIR/powercontrol-suspend-active"
+            killall -CONT keymon.elf 2>/dev/null || true
+            kill -CONT "$PROCESS_PID" || true
+        fi
+
+        "$BIN_DIR/send-save-keys" || true
         kill "$PROCESS_PID" || true
+        wait_for_exit "$PROCESS_PID"
     elif [ -f "$TMP_DIR/powercontrol-dummy-pid" ]; then
         echo "Dummy PID file found. No app process to kill."
     else
