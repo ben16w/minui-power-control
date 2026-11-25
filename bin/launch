@@ -12,8 +12,8 @@ export PATH="$BIN_DIR/$architecture:$BIN_DIR/$PLATFORM:$BIN_DIR:$PATH"
 TMP_DIR="${POWERCONTROL_TMP_DIR:-/tmp}"
 
 print_usage() {
-    echo "Usage: $0 <emulator-binary>"
-    echo "If no emulator binary is specified, a dummy PID file will be created."
+    echo "Usage: $0 <app-binary>"
+    echo "If no app binary is specified, a dummy PID file will be created."
 }
 
 cleanup() {
@@ -23,7 +23,7 @@ cleanup() {
         kill "$HANDLER_PROCESS_PID" || true
         wait "$HANDLER_PROCESS_PID" || true
     fi
-    rm -f "$TMP_DIR/powercontrol-emulator-pid"
+    rm -f "$TMP_DIR/powercontrol-app-pid"
     rm -f "$TMP_DIR/powercontrol-dummy-pid"
 }
 
@@ -104,28 +104,28 @@ main() {
     chmod +x "$BIN_DIR/suspend"
 
     if [ "$#" -eq 0 ]; then
-        echo "Emulator process not specified. Creating a dummy PID file."
+        echo "App process not specified. Creating a dummy PID file."
         touch "$TMP_DIR/powercontrol-dummy-pid"
     elif [ "$#" -eq 1 ]; then
-        EMULATOR_BIN="$1"
-        EMULATOR_PROCESS_PID=""
+        APP_BIN="$1"
+        APP_PROCESS_PID=""
 
         for _ in $(seq 1 10); do
-            echo "Waiting for $EMULATOR_BIN to start..."
-            EMULATOR_PROCESS_PID=$(pgrep "$EMULATOR_BIN" | head -n 1)
-            if [ -n "$EMULATOR_PROCESS_PID" ] && kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; then
+            echo "Waiting for $APP_BIN to start..."
+            APP_PROCESS_PID=$(pgrep "$APP_BIN" | head -n 1)
+            if [ -n "$APP_PROCESS_PID" ] && kill -0 "$APP_PROCESS_PID" 2>/dev/null; then
                 break
             fi
             sleep 1
         done
 
-        if [ -z "$EMULATOR_PROCESS_PID" ] || ! kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; then
-            echo "Emulator process $EMULATOR_BIN not found."
+        if [ -z "$APP_PROCESS_PID" ] || ! kill -0 "$APP_PROCESS_PID" 2>/dev/null; then
+            echo "App process $APP_BIN not found."
             exit 1
         fi
 
-        echo "$EMULATOR_PROCESS_PID" > "$TMP_DIR/powercontrol-emulator-pid"
-        echo "Emulator PID: $EMULATOR_PROCESS_PID"
+        echo "$APP_PROCESS_PID" > "$TMP_DIR/powercontrol-app-pid"
+        echo "App PID: $APP_PROCESS_PID"
     else
         print_usage
     fi
@@ -134,9 +134,9 @@ main() {
     button-handler &
     HANDLER_PROCESS_PID=$!
 
-    if [ -n "$EMULATOR_PROCESS_PID" ]; then
-        echo "Waiting for emulator process $EMULATOR_PROCESS_PID to finish..."
-        while kill -0 "$EMULATOR_PROCESS_PID" 2>/dev/null; do
+    if [ -n "$APP_PROCESS_PID" ]; then
+        echo "Waiting for app process $APP_PROCESS_PID to finish..."
+        while kill -0 "$APP_PROCESS_PID" 2>/dev/null; do
             sleep 1
         done
     else
