@@ -13,6 +13,8 @@ setup_power_control() {
   BIN_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$BIN_DIR"
   cp "$REPO_ROOT/bin/launch" "$REPO_ROOT/bin/suspend" "$REPO_ROOT/bin/shutdown" "$REPO_ROOT/bin/send-save-keys" "$BIN_DIR/"
+  # git may store these as non-executable; send-save-keys is invoked directly
+  chmod +x "$BIN_DIR/launch" "$BIN_DIR/suspend" "$BIN_DIR/shutdown" "$BIN_DIR/send-save-keys"
 
   STUB_DIR="$BATS_TEST_TMPDIR/stubs"
   mkdir -p "$STUB_DIR"
