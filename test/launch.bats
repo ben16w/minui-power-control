@@ -41,12 +41,26 @@ setup() {
   [[ "$output" == *"syncsettings.elf binary not found."* ]]
 }
 
-@test "launch refuses to start without minui-presenter" {
-  rm -f "$STUB_DIR/minui-presenter" "$BIN_DIR/$PLATFORM/minui-presenter"
+# the presenter comes from the pak's PATH, and a pak without one still gets
+# sleep and shutdown
+@test "launch runs without minui-presenter and says messages are only logged" {
+  rm -f "$STUB_DIR/minui-presenter"
+  start_app 1
+  stub pgrep "echo $APP_PID"
 
-  run sh "$BIN_DIR/launch"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"minui-presenter binary not found."* ]]
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"minui-presenter not found on PATH, messages will only be logged."* ]]
+  grep -q "^button-handler" "$STUB_LOG"
+}
+
+@test "launch uses the minui-presenter on the pak's PATH" {
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"minui-presenter not found"* ]]
 }
 
 @test "launch gives up when the app never starts" {
@@ -82,4 +96,50 @@ setup() {
   rm -f "$POWERCONTROL_TMP_DIR/powercontrol-dummy-pid"
   wait "$launch_pid"
   grep -q "Creating a dummy PID file" "$BATS_TEST_TMPDIR/launch.out"
+}
+
+# the rom path only exists while launch runs, so the stubbed button handler
+# records what it saw
+record_rom_path() {
+  stub button-handler "echo \"rom \$(cat \"$POWERCONTROL_TMP_DIR/powercontrol-rom-path\" 2>/dev/null)\" >>\"\$STUB_LOG\"; exec /bin/sleep 30"
+  mv "$STUB_DIR/button-handler" "$BIN_DIR/$architecture/button-handler"
+}
+
+@test "launch records the rom it was given for resuming after a power off" {
+  record_rom_path
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep "$SDCARD_PATH/Roms/Game (TAG)/game.rom"
+  [ "$status" -eq 0 ]
+  grep -q "^rom $SDCARD_PATH/Roms/Game (TAG)/game.rom$" "$STUB_LOG"
+  [ ! -f "$POWERCONTROL_TMP_DIR/powercontrol-rom-path" ]
+}
+
+@test "launch falls back to the rom NextUI launched the pak for" {
+  record_rom_path
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  HOOK_ROM_PATH="$SDCARD_PATH/Roms/Game (TAG)/hook.rom" run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  grep -q "^rom $SDCARD_PATH/Roms/Game (TAG)/hook.rom$" "$STUB_LOG"
+}
+
+@test "launch clears the save slot a resumed rom is handed" {
+  echo 9 >"$POWERCONTROL_TMP_DIR/resume_slot.txt"
+  start_app 1
+  stub pgrep "echo $APP_PID"
+
+  run sh "$BIN_DIR/launch" sleep
+  [ "$status" -eq 0 ]
+  [ ! -f "$POWERCONTROL_TMP_DIR/resume_slot.txt" ]
+}
+
+@test "launch refuses to start without the save keys script" {
+  rm -f "$BIN_DIR/send-save-keys"
+
+  run sh "$BIN_DIR/launch"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"send-save-keys script not found."* ]]
 }
